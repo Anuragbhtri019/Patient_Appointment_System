@@ -15,8 +15,11 @@ export class APIFeatures {
     const filterObj = JSON.parse(queryStr);
 
     for (const key in filterObj) {
-      if (filterObj[key] === "string") {
-        filterObj[key] = { $regex: filterObj[key], $options: "i" };
+      if (typeof filterObj[key] === "string" && filterObj[key].trim() !== "") {
+        filterObj[key] = {
+          $regex: filterObj[key],
+          $options: "i",
+        };
       }
     }
     this.query = this.query.find(filterObj);

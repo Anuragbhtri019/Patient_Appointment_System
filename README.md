@@ -157,12 +157,14 @@ The Patient Appointment System is a healthcare platform designed to streamline t
 ## 🛠️ Frontend Description
 
 ### UI Design
+
 - **Modern & Responsive**: Built with Tailwind CSS for a clean, mobile-friendly interface
 - **Component-based Architecture**: Reusable React components for consistency
 - **Real-time Feedback**: Toast notifications for user actions and feedback
 - **Intuitive Navigation**: React Router for smooth page transitions
 
 ### Tools Used
+
 - **React 19**: Latest React version with concurrent rendering features
 - **Vite**: Fast build tool for rapid development and optimized production builds
 - **Tailwind CSS**: Utility-first CSS framework for rapid UI development
@@ -177,12 +179,14 @@ The Patient Appointment System is a healthcare platform designed to streamline t
 ### API Endpoints
 
 #### Authentication Routes (`/api/auth`)
+
 - `POST /register` - Register a new user (patient)
 - `POST /login` - Login with email and password
 - `POST /logout` - Logout and invalidate refresh token
 - `POST /refresh-token` - Get new access token using refresh token
 
 #### Doctor Routes (`/api/doctors`)
+
 - `GET /` - Get all doctors (with filtering by specialization, hospital branch)
 - `GET /:id` - Get doctor details with ratings
 - `POST /` - Create new doctor (admin only)
@@ -190,6 +194,7 @@ The Patient Appointment System is a healthcare platform designed to streamline t
 - `DELETE /:id` - Delete doctor (admin only)
 
 #### Schedule Routes (`/api/schedules`)
+
 - `GET /` - Get all schedules (with filtering)
 - `GET /:id` - Get specific schedule with time slots
 - `POST /` - Create schedule for a doctor
@@ -197,6 +202,7 @@ The Patient Appointment System is a healthcare platform designed to streamline t
 - `DELETE /:id` - Delete schedule
 
 #### Appointment Routes (`/api/appointments`)
+
 - `GET /` - Get user's appointments (patient view) or all appointments (admin)
 - `GET /:id` - Get appointment details
 - `POST /` - Book new appointment
@@ -204,11 +210,13 @@ The Patient Appointment System is a healthcare platform designed to streamline t
 - `DELETE /:id` - Cancel appointment
 
 #### Rating Routes (`/api/ratings`)
+
 - `POST /` - Submit rating for completed appointment
 - `GET /doctor/:doctorId` - Get doctor's ratings and average
 - `DELETE /:id` - Delete rating (admin or owner)
 
 ### Key Technologies
+
 - **Express.js**: Fast and minimalist web framework
 - **MongoDB & Mongoose**: Document-based database with schema validation
 - **JWT**: Secure token-based authentication
@@ -222,26 +230,27 @@ The Patient Appointment System is a healthcare platform designed to streamline t
 - **CORS**: Cross-origin resource sharing configuration
 - **Morgan**: HTTP request logging
 
-## 📋 Prerequisites
+##  Prerequisites
 
 Before starting, ensure you have the following installed:
 
 ### Required
+
 - **Node.js** v18 or higher - [Download](https://nodejs.org/)
 - **npm** v9 or higher (comes with Node.js)
 - **Git** - [Download](https://git-scm.com/)
 
 ### External Accounts Required
+
 - **MongoDB Atlas Account** - [Create Free Cluster](https://www.mongodb.com/cloud/atlas/register)
   - Create a database cluster
   - Whitelist your IP address
   - Get your connection string
-  
 - **Cloudinary Account** - [Sign Up](https://cloudinary.com/users/register/free)
   - Create API credentials
   - Get your Cloud Name, API Key, and API Secret
 
-## 🚀 Installation
+##  Installation
 
 ### Step 1: Clone the Repository
 
@@ -274,6 +283,7 @@ nano .env  # or use your preferred editor
 ```
 
 Example `.env` configuration:
+
 ```
 PORT=5000
 NODE_ENV=development
@@ -289,6 +299,7 @@ BCRYPT_ROUNDS=12
 ```
 
 Start the backend development server:
+
 ```bash
 npm run dev
 ```
@@ -323,9 +334,10 @@ The frontend will start on `http://localhost:5173`
 4. Check that you can browse doctors and schedules
 5. The backend API should be accessible at `http://localhost:5000/api/docs` (Swagger UI)
 
-## 🌱 Seed Script
+## Seed Script
 
 The seed script populates the database with realistic test data using Faker.js. This includes:
+
 - **1 Admin User** - For managing doctors and system configuration
 - **3 Patient Users** - For testing patient functionality
 - **5 Doctors** - With different specializations and hospital branches
@@ -344,12 +356,14 @@ npm run seed
 ```
 
 **Important:** The seed script will:
+
 1. Connect to MongoDB using your configured MONGODB_URI
 2. Clear existing collections to avoid duplicates
 3. Create all test data
 4. Display created credentials in the console
 
 **Default Test Credentials:**
+
 ```
 Admin User:
 Email: admin@example.com
@@ -362,16 +376,18 @@ Password: Patient@12345 (same for all)
 
 **Note:** Always run seed script in development environment only. Never use in production!
 
-## 📚 API Documentation
+## API Documentation
 
 The API documentation is available in two formats:
 
 ### Interactive Swagger UI
+
 ```
 URL: http://localhost:5000/api/docs
 ```
 
 Access the interactive Swagger interface to:
+
 - View all available endpoints
 - See request/response examples
 - Test API endpoints directly
@@ -380,6 +396,7 @@ Access the interactive Swagger interface to:
 ### Example API Calls
 
 #### Register a New Patient
+
 ```bash
 curl -X POST http://localhost:5000/api/auth/register \
   -H "Content-Type: application/json" \
@@ -391,6 +408,7 @@ curl -X POST http://localhost:5000/api/auth/register \
 ```
 
 #### Login
+
 ```bash
 curl -X POST http://localhost:5000/api/auth/login \
   -H "Content-Type: application/json" \
@@ -401,12 +419,14 @@ curl -X POST http://localhost:5000/api/auth/login \
 ```
 
 #### Get All Doctors with Specialization Filter
+
 ```bash
 curl -X GET "http://localhost:5000/api/doctors?specialization=Cardiology" \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN"
 ```
 
 #### Book an Appointment
+
 ```bash
 curl -X POST http://localhost:5000/api/appointments \
   -H "Content-Type: application/json" \
@@ -420,6 +440,7 @@ curl -X POST http://localhost:5000/api/appointments \
 ```
 
 #### Rate a Doctor (After Appointment)
+
 ```bash
 curl -X POST http://localhost:5000/api/ratings \
   -H "Content-Type: application/json" \
@@ -436,28 +457,33 @@ curl -X POST http://localhost:5000/api/ratings \
 The project includes comprehensive unit and integration tests using Jest and Supertest.
 
 ### Run All Tests
+
 ```bash
 cd backend
 npm test
 ```
 
 ### Run Tests in Watch Mode
+
 ```bash
 cd backend
 npm run test:watch
 ```
 
 ### Run Specific Test File
+
 ```bash
 npm test -- tests/auth.test.js
 ```
 
 ### Check Test Coverage
+
 ```bash
 npm test -- --coverage
 ```
 
 Tests cover:
+
 - Authentication flow (register, login, refresh tokens)
 - Doctor CRUD operations
 - Appointment booking and management
@@ -466,7 +492,7 @@ Tests cover:
 - Error handling
 - Authorization checks
 
-## 📦 Deployment Guide
+## Deployment Guide
 
 ### Backend Deployment (Render.com)
 
@@ -486,6 +512,7 @@ Tests cover:
 
 3. **Set Environment Variables**
    - In Render Dashboard → Settings → Environment Variables, add:
+
    ```
    PORT=5000
    NODE_ENV=production
@@ -522,6 +549,7 @@ Tests cover:
 
 4. **Set Environment Variables**
    - In Project Settings → Environment Variables, add:
+
    ```
    VITE_API_BASE_URL=https://patient-appointment-backend.onrender.com/api
    ```
@@ -544,7 +572,7 @@ Tests cover:
    - Test restoration procedures regularly
    - Store backup credentials securely
 
-## ⚠️ Known Limitations & Future Improvements
+## Known Limitations & Future Improvements
 
 ### Current Limitations
 
@@ -575,6 +603,7 @@ Tests cover:
 ### Planned Improvements
 
 1. **Real-time Communication**
+
    ```
    - Socket.io integration for live appointment status
    - Real-time notification system
@@ -582,6 +611,7 @@ Tests cover:
    ```
 
 2. **Advanced Scheduling**
+
    ```
    - Recurring appointments
    - Appointment rescheduling
@@ -590,6 +620,7 @@ Tests cover:
    ```
 
 3. **Analytics Dashboard**
+
    ```
    - Admin dashboard with analytics
    - Doctor performance metrics
@@ -598,6 +629,7 @@ Tests cover:
    ```
 
 4. **Medical Records**
+
    ```
    - Secure medical history storage
    - Prescription management
@@ -606,6 +638,7 @@ Tests cover:
    ```
 
 5. **Enhanced Rating System**
+
    ```
    - Verified patient reviews
    - Photo/video reviews
@@ -625,17 +658,9 @@ Tests cover:
 ## 📄 License
 
 This project is licensed under the MIT License. You are free to use, modify, and distribute this software for personal and commercial purposes.
-
-### MIT License Summary
-- ✅ Commercial use
-- ✅ Modification
-- ✅ Distribution
-- ✅ Private use
-- ⚠️ License and copyright notice required
-
 See [LICENSE](./LICENSE) file for complete details.
 
-## 🤝 Contributing
+## Contributing
 
 Contributions are welcome! Please follow these steps:
 
@@ -645,9 +670,10 @@ Contributions are welcome! Please follow these steps:
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## 📞 Support
+## Support
 
 For issues, questions, or suggestions, please:
+
 - Open an issue on GitHub
 - Check existing documentation
 - Review API documentation at `/api/docs`
@@ -655,5 +681,5 @@ For issues, questions, or suggestions, please:
 ---
 
 **Version**: 1.0.0  
-**Last Updated**: 2024  
-**Maintainer**: Your Name/Organization
+**Last Updated**: 2026  
+**Maintainer**: Anurag Bhattarai

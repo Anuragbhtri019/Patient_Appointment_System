@@ -22,14 +22,9 @@ export default function ScheduleManagement() {
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
-        const response = await doctorApi.getAllDoctors({ limit: 1000 });
-        const doctors = Array.isArray(response.data?.data)
-          ? response.data.data
-          : Array.isArray(response.data?.doctors)
-            ? response.data.doctors
-            : Array.isArray(response.data)
-              ? response.data
-              : [];
+        const response = await doctorApi.getAllDoctors();
+        const doctors =
+          response.data?.data?.doctors || response.data?.doctors || [];
         setDoctors(doctors);
       } catch (error) {
         showError("Failed to fetch doctors");
@@ -127,7 +122,7 @@ export default function ScheduleManagement() {
               >
                 <option value="">Choose a doctor</option>
                 {doctors.map((doc) => (
-                  <option key={doc.id} value={doc.id}>
+                  <option key={doc._id} value={doc._id}>
                     {doc.name}
                   </option>
                 ))}
