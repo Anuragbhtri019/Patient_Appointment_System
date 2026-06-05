@@ -1,19 +1,20 @@
-import { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
-import { useAuth } from '../../hooks/useAuth';
-import Button from '../../components/common/Button';
+import { useState } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { useAuth } from "../../hooks/useAuth";
+import Button from "../../components/common/Button";
+import { useToast } from "../../hooks/useToast";
 
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login, isLoading } = useAuth();
-  const [formData, setFormData] = useState({ email: '', password: '' });
+  const [formData, setFormData] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
-  const [generalError, setGeneralError] = useState('');
+  const [generalError, setGeneralError] = useState("");
 
   const validateForm = () => {
     const newErrors = {};
-    if (!formData.email) newErrors.email = 'Email is required';
-    if (!formData.password) newErrors.password = 'Password is required';
+    if (!formData.email) newErrors.email = "Email is required";
+    if (!formData.password) newErrors.password = "Password is required";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -22,21 +23,21 @@ export default function LoginPage() {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
     }
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    setGeneralError('');
+    setGeneralError("");
     if (!validateForm()) return;
 
     const result = await login(formData.email, formData.password);
     if (result.success) {
-      if (result.user?.role === 'admin') {
-        navigate('/admin');
+      if (result.user?.role === "admin") {
+        navigate("./admin/admin-dashboard");
       } else {
-        navigate('/dashboard');
+        navigate("./patient/patient-dashboard");
       }
     } else {
       setGeneralError(result.message);
@@ -69,7 +70,7 @@ export default function LoginPage() {
               value={formData.email}
               onChange={handleChange}
               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none ${
-                errors.email ? 'border-red-500' : 'border-gray-300'
+                errors.email ? "border-red-500" : "border-gray-300"
               }`}
               placeholder="you@example.com"
             />
@@ -89,7 +90,7 @@ export default function LoginPage() {
               value={formData.password}
               onChange={handleChange}
               className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none ${
-                errors.password ? 'border-red-500' : 'border-gray-300'
+                errors.password ? "border-red-500" : "border-gray-300"
               }`}
               placeholder="••••••••"
             />
@@ -110,8 +111,11 @@ export default function LoginPage() {
         </form>
 
         <p className="text-center text-gray-600 text-sm mt-6">
-          Don't have an account?{' '}
-          <Link to="/register" className="text-teal-600 hover:text-teal-700 font-medium">
+          Don't have an account?{" "}
+          <Link
+            to="/register"
+            className="text-teal-600 hover:text-teal-700 font-medium"
+          >
             Sign up
           </Link>
         </p>

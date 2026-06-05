@@ -37,10 +37,14 @@ export const rateAppointment = catchAsync(async (req, res) => {
     doctor.totalRatings,
     rating
   );
-
-  doctor.averageRating = newAverage;
-  doctor.totalRatings = newCount;
-  await doctor.save();
+  const updatedDoctor = await Doctor.findByIdAndUpdate(
+    appointment.doctor,
+    {
+      averageRating: newAverage,
+      totalRatings: newCount,
+    },
+    { new: true, runValidators: true }
+  );
 
   res.status(200).json({
     status: "success",
@@ -48,4 +52,3 @@ export const rateAppointment = catchAsync(async (req, res) => {
     data: { appointment },
   });
 });
-

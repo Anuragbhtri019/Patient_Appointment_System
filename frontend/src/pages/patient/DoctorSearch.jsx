@@ -1,6 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { doctorApi } from "../../api/doctor.api";
-import { appointmentApi } from "../../api/appointment.api";
+import { scheduleApi } from "../../api/schedule.api";
 import SearchFilterBar from "../../components/filters/SearchFilterBar";
 import DoctorCard from "../../components/doctor/DoctorCard";
 import BookingModal from "../../components/appointment/BookingModal";
@@ -31,6 +31,26 @@ function normalizeDoctorsResponse(payload) {
   return [];
 }
 
+function normalizeSchedulesResponse(payload) {
+  if (Array.isArray(payload?.data?.schedules)) {
+    return payload.data.schedules;
+  }
+
+  if (Array.isArray(payload?.data)) {
+    return payload.data;
+  }
+
+  if (Array.isArray(payload?.schedules)) {
+    return payload.schedules;
+  }
+
+  if (Array.isArray(payload)) {
+    return payload;
+  }
+
+  return [];
+}
+
 export default function DoctorSearch() {
   const [doctors, setDoctors] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -38,7 +58,7 @@ export default function DoctorSearch() {
   const [totalPages, setTotalPages] = useState(1);
   const [selectedDoctor, setSelectedDoctor] = useState(null);
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
-  const [slots, setSlots] = useState([]);
+  const [schedules, setSchedules] = useState([]);
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [filters, setFilters] = useState({});
   const { bookAppointment, isLoading: isBooking } = useAppointments();
@@ -55,9 +75,12 @@ export default function DoctorSearch() {
         });
         const data = response.data;
         setDoctors(normalizeDoctorsResponse(data));
-        setTotalPages(data.pagination?.pages || data.data?.pagination?.pages || 1);
+        setTotalPages(
+          data.pagination?.pages || data.data?.pagination?.pages || 1,
+        );
         setCurrentPage(page);
-      } catch {
+      } catch (error) {
+        console.error("Failed to fetch doctors:", error);
         showError("Failed to fetch doctors");
       } finally {
         setIsLoading(false);
@@ -66,16 +89,22 @@ export default function DoctorSearch() {
     [filters, showError],
   );
 
-  const fetchSlots = useCallback(
+  // Uses scheduleApi instead of appointmentApi
+  const fetchSchedulesByDoctor = useCallback(
     async (doctorId) => {
       setSlotsLoading(true);
       try {
-        const response = await appointmentApi.getMyAppointments({
-          doctor_id: doctorId,
-        });
-        setSlots(response.data.available_slots || []);
-      } catch {
+        const response = await scheduleApi.getSchedulesByDoctor(doctorId);
+        const scheduleData = normalizeSchedulesResponse(response.data);
+        setSchedules(scheduleData);
+
+        if (scheduleData.length === 0) {
+          showError("No available schedules for this doctor");
+        }
+      } catch (error) {
+        console.error("Failed to fetch schedules:", error);
         showError("Failed to fetch available slots");
+        setSchedules([]);
       } finally {
         setSlotsLoading(false);
       }
@@ -89,23 +118,36 @@ export default function DoctorSearch() {
 
   const handleFilterChange = useCallback((newFilters) => {
     setFilters(newFilters);
+    setCurrentPage(1);
   }, []);
 
   const handleBookClick = async (doctor) => {
     setSelectedDoctor(doctor);
     setBookingModalOpen(true);
-    await fetchSlots(doctor.id);
+    await fetchSchedulesByDoctor(doctor._id);
   };
 
   const handleConfirmBooking = async (bookingData) => {
     const result = await bookAppointment(bookingData);
+
     if (result.success) {
       showSuccess("Appointment booked successfully!");
       setBookingModalOpen(false);
       return { success: true };
     } else {
-      showError(result.message || "Failed to book appointment");
-      return { success: false, message: result.message };
+      const errorMsg = result.message || "Failed to book appointment";
+
+      if (
+        errorMsg.includes("2 active appointments") ||
+        errorMsg.includes("appointment limit") ||
+        errorMsg.includes("maximum")
+      ) {
+        showError("You cannot hold more than 2 active appointments at a time");
+      } else {
+        showError(errorMsg);
+      }
+
+      return { success: false, message: errorMsg };
     }
   };
 
@@ -140,7 +182,7 @@ export default function DoctorSearch() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
             {doctors.map((doctor) => (
               <DoctorCard
-                key={doctor.id}
+                key={doctor._id}
                 doctor={doctor}
                 onBookClick={handleBookClick}
               />
@@ -168,16 +210,18 @@ export default function DoctorSearch() {
       )}
 
       {/* Booking Modal */}
+
       <BookingModal
         isOpen={bookingModalOpen}
         onClose={() => {
           setBookingModalOpen(false);
           setSelectedDoctor(null);
-          setSlots([]);
+          setSchedules([]);
         }}
         doctor={selectedDoctor}
-        slots={slots}
+        schedules={schedules}
         onConfirm={handleConfirmBooking}
+        onError={showError}
         isLoading={isBooking || slotsLoading}
       />
     </div>

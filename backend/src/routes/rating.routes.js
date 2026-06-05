@@ -10,8 +10,7 @@ router.post(
   "/:appointmentId/rate",
   protect,
   validate(rateAppointmentRules()),
-  ratingController.rateAppointment
+  ratingController.rateAppointment,
 );
 
 export default router;
-

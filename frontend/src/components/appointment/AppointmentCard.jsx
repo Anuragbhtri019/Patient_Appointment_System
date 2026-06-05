@@ -1,9 +1,9 @@
-import { useState } from 'react';
-import { formatDate, formatTime } from '../../utils/dateUtils';
-import Avatar from '../common/Avatar';
-import Badge from '../common/Badge';
-import Button from '../common/Button';
-import StarRating from '../common/StarRating';
+import { useState } from "react";
+import { formatDate, formatTime } from "../../utils/dateUtils";
+import Avatar from "../common/Avatar";
+import Badge from "../common/Badge";
+import Button from "../common/Button";
+import StarRating from "../common/StarRating";
 
 export default function AppointmentCard({
   appointment,
@@ -16,30 +16,34 @@ export default function AppointmentCard({
   const [rating, setRating] = useState(appointment?.rating || 0);
 
   const getStatusVariant = (status) => {
-    if (status === 'Upcoming') return 'blue';
-    if (status === 'Completed') return 'green';
-    if (status === 'Cancelled') return 'red';
-    return 'gray';
+    if (status === "Upcoming") return "blue";
+    if (status === "Completed") return "green";
+    if (status === "Cancelled") return "red";
+    return "gray";
   };
 
   const handleConfirmCancel = () => {
-    if (window.confirm('Are you sure you want to cancel this appointment?')) {
-      onCancel?.(appointment.id);
+    if (window.confirm("Are you sure you want to cancel this appointment?")) {
+      onCancel?.(appointment._id);
     }
   };
 
   const handleSubmitRating = async () => {
-    await onRate?.(appointment.id, rating);
+    await onRate?.(appointment._id, rating);
     setShowRating(false);
   };
+
+  const appointmentDate = appointment?.appointmentDate;
+  const timeSlot = appointment?.timeSlot;
+  const consultationType = appointment?.consultationType;
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
       <div className="flex items-start gap-4 mb-4">
         <Avatar
-          name={appointment?.doctor?.name || 'Doctor'}
+          name={appointment?.doctor?.name || "Doctor"}
           size="lg"
-          src={appointment?.doctor?.image}
+          src={appointment?.doctor?.imageUrl}
         />
         <div className="flex-1">
           <div className="flex items-start justify-between">
@@ -47,7 +51,9 @@ export default function AppointmentCard({
               <h3 className="font-semibold text-lg text-gray-900">
                 {appointment?.doctor?.name}
               </h3>
-              <Badge variant="teal">{appointment?.doctor?.specialization}</Badge>
+              <Badge variant="teal">
+                {appointment?.doctor?.specialization}
+              </Badge>
             </div>
             <Badge variant={getStatusVariant(appointment?.status)}>
               {appointment?.status}
@@ -58,22 +64,24 @@ export default function AppointmentCard({
 
       <div className="space-y-2 text-sm text-gray-600 mb-4">
         <p>
-          <span className="font-medium text-gray-900">Date:</span>{' '}
-          {formatDate(appointment?.date)}
+          <span className="font-medium text-gray-900">Date:</span>{" "}
+          {formatDate(appointmentDate)}
         </p>
+
         <p>
-          <span className="font-medium text-gray-900">Time:</span>{' '}
-          {formatTime(appointment?.time)}
+          <span className="font-medium text-gray-900">Time:</span>{" "}
+          {formatTime(timeSlot)}
         </p>
+
         <p>
-          <span className="font-medium text-gray-900">Type:</span>{' '}
-          {appointment?.consultation_type}
+          <span className="font-medium text-gray-900">Type:</span>{" "}
+          {consultationType}
         </p>
       </div>
 
       {/* Actions */}
       <div className="border-t border-gray-200 pt-4">
-        {appointment?.status === 'Upcoming' && (
+        {appointment?.status === "Upcoming" && (
           <Button
             variant="danger"
             size="sm"
@@ -85,18 +93,21 @@ export default function AppointmentCard({
           </Button>
         )}
 
-        {appointment?.status === 'Completed' && !appointment?.rating && !showRating && (
-          <Button
-            variant="secondary"
-            size="sm"
-            fullWidth
-            onClick={() => setShowRating(true)}
-          >
-            Rate Visit
-          </Button>
-        )}
+        {/* FIXED: Rating modal shows when status is Completed AND no rating exists */}
+        {appointment?.status === "Completed" &&
+          !appointment?.rating &&
+          !showRating && (
+            <Button
+              variant="secondary"
+              size="sm"
+              fullWidth
+              onClick={() => setShowRating(true)}
+            >
+              Rate Visit
+            </Button>
+          )}
 
-        {appointment?.status === 'Completed' && appointment?.rating && (
+        {appointment?.status === "Completed" && appointment?.rating && (
           <div className="text-center">
             <p className="text-sm text-gray-600">Your rating:</p>
             <div className="flex justify-center mt-2">
@@ -106,10 +117,12 @@ export default function AppointmentCard({
         )}
       </div>
 
-      {/* Rating modal */}
+      {/* Rating Modal */}
       {showRating && (
         <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-          <p className="text-sm font-medium text-gray-900 mb-3">Rate your visit</p>
+          <p className="text-sm font-medium text-gray-900 mb-3">
+            Rate your visit
+          </p>
           <StarRating value={rating} onChange={setRating} size="md" />
           <div className="flex gap-2 mt-4">
             <Button

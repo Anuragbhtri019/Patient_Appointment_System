@@ -6,18 +6,82 @@ import { APIFeatures } from "../utils/apiFeatures.js";
 import { cloudinary } from "../config/cloudinary.js";
 
 export const getAllDoctors = catchAsync(async (req, res) => {
-  const features = new APIFeatures(Doctor.find(), req.query)
-    .filter()
-    .sort()
-    .limitFields()
-    .paginate();
+  const { consultationType, ...otherFilters } = req.query;
+  if (consultationType) {
+    const doctors = await Doctor.aggregate([
+      {
+        $lookup: {
+          from: "schedules",
+          localField: "_id",
+          foreignField: "doctor",
+          as: "schedules",
+        },
+      },
+      {
+        $addFields: {
+          hasAvailableSlot: {
+            $anyElementTrue: {
+              $map: {
+                input: "$schedules",
+                as: "schedule",
+                in: {
+                  $anyElementTrue: {
+                    $map: {
+                      input: "$$schedule.timeSlots",
+                      as: "slot",
+                      in: {
+                        $and: [
+                          {
+                            $eq: ["$$slot.consultationType", consultationType],
+                          },
+                          { $eq: ["$$slot.status", "Available"] },
+                        ],
+                      },
+                    },
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+      {
+        $match: { hasAvailableSlot: true },
+      },
+      {
+        $project: { schedules: 0, hasAvailableSlot: 0 },
+      },
+      {
+        $sort: { createdAt: -1 },
+      },
+      {
+        $skip: ((req.query.page || 1) - 1) * (req.query.limit || 10),
+      },
+      {
+        $limit: parseInt(req.query.limit) || 10,
+      },
+    ]);
 
-  const doctors = await features.query;
-  res.status(200).json({
-    status: "success",
-    results: doctors.length,
-    data: { doctors },
-  });
+    res.status(200).json({
+      status: "success",
+      results: doctors.length,
+      data: { doctors },
+    });
+  } else {
+    // Original filter logic for other fields
+    const features = new APIFeatures(Doctor.find(), req.query)
+      .filter()
+      .sort()
+      .limitFields()
+      .paginate();
+
+    const doctors = await features.query;
+    res.status(200).json({
+      status: "success",
+      results: doctors.length,
+      data: { doctors },
+    });
+  }
 });
 
 export const getDoctorById = catchAsync(async (req, res) => {

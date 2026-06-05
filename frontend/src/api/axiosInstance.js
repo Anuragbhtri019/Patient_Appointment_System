@@ -8,6 +8,23 @@ const axiosInstance = axios.create({
   withCredentials: true,
 });
 
+//  Queue to handle concurrent 401s
+let isRefreshing = false;
+let failedQueue = [];
+
+const processQueue = (error, token = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+
+  isRefreshing = false;
+  failedQueue = [];
+};
+
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("accessToken");
@@ -29,7 +46,18 @@ axiosInstance.interceptors.response.use(
     }
 
     if (error.response?.status === 401 && !originalRequest._retry) {
+      if (isRefreshing) {
+        //  Queue requests if already refreshing
+        return new Promise((resolve, reject) => {
+          failedQueue.push({ resolve, reject });
+        }).then((token) => {
+          originalRequest.headers.Authorization = `Bearer ${token}`;
+          return axiosInstance(originalRequest);
+        });
+      }
+
       originalRequest._retry = true;
+      isRefreshing = true;
 
       try {
         const response = await axios.post(
@@ -42,11 +70,18 @@ axiosInstance.interceptors.response.use(
         localStorage.setItem("accessToken", access_token);
 
         originalRequest.headers.Authorization = `Bearer ${access_token}`;
+
+        //  Process queued requests
+        processQueue(null, access_token);
+
         return axiosInstance(originalRequest);
       } catch (refreshError) {
         localStorage.removeItem("accessToken");
         localStorage.removeItem("refreshToken");
         localStorage.removeItem("user");
+
+        processQueue(refreshError, null);
+
         window.location.href = "/login";
         return Promise.reject(refreshError);
       }

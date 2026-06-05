@@ -10,7 +10,7 @@ export const startCronJobs = () => {
           status: "Upcoming",
           appointmentDate: { $lt: now },
         },
-        { status: "completed" },
+        { status: "Completed" },
       );
       if (result.modifiedCount > 0) {
         console.log(`${result.modifiedCount} appointments auto-completed.`);

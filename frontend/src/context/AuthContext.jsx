@@ -111,12 +111,23 @@ export default function AuthProvider({ children }) {
 
       if (token && storedUser) {
         try {
+          // Validate the stored user data
+          const parsedUser = JSON.parse(storedUser);
+          if (!parsedUser || !parsedUser._id) {
+            clearSession();
+            return;
+          }
+
+          // Only call getMe if we have a valid token
           const response = await authApi.getMe();
+          const userData = response.data?.data || response.data;
+
           dispatch({
             type: "LOGIN",
-            payload: { user: response.data, accessToken: token },
+            payload: { user: userData, accessToken: token },
           });
-        } catch {
+        } catch (error) {
+          console.error("Failed to restore session:", error);
           clearSession();
         }
       }

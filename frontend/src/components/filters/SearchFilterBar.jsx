@@ -1,33 +1,52 @@
-import { useState, useEffect } from 'react';
-import { useDebounce } from '../../hooks/useDebounce';
-import { SPECIALIZATIONS, BRANCHES, CONSULTATION_TYPES } from '../../utils/constants';
-import Button from '../common/Button';
+import { useState, useEffect } from "react";
+import { useDebounce } from "../../hooks/useDebounce";
+import {
+  SPECIALIZATIONS,
+  BRANCHES,
+  CONSULTATION_TYPES,
+} from "../../utils/constants";
+import Button from "../common/Button";
 
 export default function SearchFilterBar({ onFilterChange }) {
-  const [name, setName] = useState('');
-  const [specialization, setSpecialization] = useState('');
-  const [branch, setBranch] = useState('');
-  const [consultationType, setConsultationType] = useState('');
+  const [name, setName] = useState("");
+  const [specialization, setSpecialization] = useState("");
+
+  const [hospitalBranch, setHospitalBranch] = useState("");
+  const [consultationType, setConsultationType] = useState("");
   const debouncedName = useDebounce(name, 400);
 
   useEffect(() => {
-    onFilterChange({
-      name: debouncedName,
-      specialization,
-      branch,
-      consultation_type: consultationType,
-    });
-  }, [debouncedName, specialization, branch, consultationType, onFilterChange]);
+    const filters = {
+      ...(debouncedName && { name: debouncedName }),
+      ...(specialization && { specialization }),
+
+      ...(hospitalBranch && { hospitalBranch }),
+
+      ...(consultationType && { consultationType }),
+    };
+
+    onFilterChange(filters);
+  }, [
+    debouncedName,
+    specialization,
+    hospitalBranch,
+    consultationType,
+    onFilterChange,
+  ]);
 
   const handleClearFilters = () => {
-    setName('');
-    setSpecialization('');
-    setBranch('');
-    setConsultationType('');
+    setName("");
+    setSpecialization("");
+    setHospitalBranch("");
+    setConsultationType("");
   };
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 mb-8">
+      <h2 className="text-lg font-semibold text-gray-900 mb-4">
+        Search Filters
+      </h2>
+
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         {/* Name search */}
         <div>
@@ -38,7 +57,7 @@ export default function SearchFilterBar({ onFilterChange }) {
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Search doctor..."
+            placeholder="Search by name..."
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
           />
         </div>
@@ -62,26 +81,26 @@ export default function SearchFilterBar({ onFilterChange }) {
           </select>
         </div>
 
-        {/* Branch */}
+        {/* Hospital Branch */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Branch
+            Hospital Branch
           </label>
           <select
-            value={branch}
-            onChange={(e) => setBranch(e.target.value)}
+            value={hospitalBranch}
+            onChange={(e) => setHospitalBranch(e.target.value)}
             className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 focus:border-transparent outline-none"
           >
             <option value="">All Branches</option>
-            {BRANCHES.map((b) => (
-              <option key={b} value={b}>
-                {b}
+            {BRANCHES.map((branch) => (
+              <option key={branch} value={branch}>
+                {branch}
               </option>
             ))}
           </select>
         </div>
 
-        {/* Consultation type */}
+        {/* Consultation Type */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Consultation Type
@@ -102,11 +121,7 @@ export default function SearchFilterBar({ onFilterChange }) {
       </div>
 
       <div className="flex justify-end">
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={handleClearFilters}
-        >
+        <Button variant="secondary" size="sm" onClick={handleClearFilters}>
           Clear Filters
         </Button>
       </div>
