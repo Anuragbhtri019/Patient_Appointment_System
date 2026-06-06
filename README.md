@@ -2,6 +2,9 @@
 
 A full-stack healthcare management application that enables patients to book appointments with doctors, manage their medical schedules, and rate healthcare providers. The system features a robust backend API, an intuitive frontend interface, and real-time appointment management.
 
+frontend : https://patient-appointment-system-7jim7uioz-anuragbhtri019s-projects.vercel.app/search
+backend : https://patient-appointment-system-1.onrender.com/
+
 ## 📋 Table of Contents
 
 - [Project Overview](#project-overview)
@@ -230,7 +233,7 @@ The Patient Appointment System is a healthcare platform designed to streamline t
 - **CORS**: Cross-origin resource sharing configuration
 - **Morgan**: HTTP request logging
 
-##  Prerequisites
+## Prerequisites
 
 Before starting, ensure you have the following installed:
 
@@ -250,7 +253,7 @@ Before starting, ensure you have the following installed:
   - Create API credentials
   - Get your Cloud Name, API Key, and API Secret
 
-##  Installation
+## Installation
 
 ### Step 1: Clone the Repository
 
