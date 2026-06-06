@@ -21,8 +21,8 @@ export default function RegisterPage() {
     if (!formData.name.trim()) newErrors.name = "Name is required";
     if (!formData.email) newErrors.email = "Email is required";
     if (!formData.password) newErrors.password = "Password is required";
-    if (formData.password.length < 6)
-      newErrors.password = "Password must be at least 6 characters";
+    if (formData.password.length < 8)
+      newErrors.password = "Password must be at least 8 characters";
     if (formData.password !== formData.confirmPassword) {
       newErrors.confirmPassword = "Passwords do not match";
     }
@@ -46,12 +46,12 @@ export default function RegisterPage() {
     setGeneralError("");
     if (!validateForm()) return;
 
-    const result = await register(
-      formData.name,
-      formData.email,
-      formData.password,
-      formData.role,
-    );
+    const result = await register({
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      password: formData.password,
+      role: formData.role,
+    });
 
     if (result.success) {
       navigate("/login");
@@ -183,7 +183,7 @@ export default function RegisterPage() {
                   onChange={handleChange}
                   className="w-4 h-4 text-teal-600"
                 />
-                <span className="ml-2 text-gray-700">Admin</span>
+                <span className="ml-2 text-gray-700">Admin(Demo)</span>
               </label>
             </div>
           </div>

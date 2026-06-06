@@ -59,7 +59,7 @@ export const register = catchAsync(async (req, res) => {
     name,
     email,
     password,
-    role: role || "patient",
+    role: "patient",
   });
   const { accessToken } = setCookieAndRespond(res, user, 201);
   await user.save();
@@ -128,7 +128,7 @@ export const refresh = catchAsync(async (req, res) => {
   user.refreshToken = newRefreshToken;
   await user.save();
 
-  res.cookie("refreshToken", refreshToken, {
+  res.cookie("refreshToken", newRefreshToken, {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
@@ -215,7 +215,9 @@ export const changePassword = catchAsync(async (req, res) => {
 });
 
 export const deleteProfileImage = catchAsync(async (req, res) => {
-  const user = await User.findById(req.user._id);
+  const user = await User.findById(req.user._id).select(
+    "_id name email role profileImage",
+  );
   if (!user) throw new AppError("User not found", 404);
 
   if (!user.profileImage) {

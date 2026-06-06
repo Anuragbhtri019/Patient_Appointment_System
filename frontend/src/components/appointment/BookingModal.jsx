@@ -25,6 +25,7 @@ export default function BookingModal({
   const [selectedSchedule, setSelectedSchedule] = useState(null);
   const [bookingError, setBookingError] = useState("");
   const [isConfirming, setIsConfirming] = useState(false);
+  const isPatient = user?.role === "patient";
 
   const allAvailableSlots = schedules.flatMap((schedule) =>
     schedule.timeSlots
@@ -43,7 +44,7 @@ export default function BookingModal({
   };
 
   const handleContinue = () => {
-    if (!isAuthenticated) {
+    if (!isAuthenticated && !isPatient) {
       handleClose();
       navigate("/login", {
         state: {
@@ -51,6 +52,10 @@ export default function BookingModal({
           message: "Please log in to book an appointment",
         },
       });
+      return;
+    }
+    if (!isPatient) {
+      setBookingError("Only patients can book appointments.");
       return;
     }
     if (!selectedSlot) {
