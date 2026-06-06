@@ -8,6 +8,7 @@ import {
   DocumentTextIcon,
   StarIcon,
 } from "@heroicons/react/24/outline";
+import { formatDate } from "../../utils/dateUtils";
 
 const StatCard = ({ icon: Icon, label, value }) => (
   <div className="bg-white rounded-lg shadow-md p-6">
@@ -34,27 +35,17 @@ export default function AdminDashboard() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // Fetch doctors
         const doctorsRes = await doctorApi.getAllDoctors({ limit: 1000 });
-        const doctors = Array.isArray(doctorsRes.data?.data)
-          ? doctorsRes.data.data
-          : Array.isArray(doctorsRes.data?.doctors)
-            ? doctorsRes.data.doctors
-            : Array.isArray(doctorsRes.data)
-              ? doctorsRes.data
-              : [];
+        const doctors =
+          doctorsRes.data?.data?.doctors || doctorsRes.data?.doctors || [];
 
-        // Fetch appointments
         const appointmentsRes = await appointmentApi.getAllAppointments({
           limit: 100,
         });
-        const appointments = Array.isArray(appointmentsRes.data?.data)
-          ? appointmentsRes.data.data
-          : Array.isArray(appointmentsRes.data?.appointments)
-            ? appointmentsRes.data.appointments
-            : Array.isArray(appointmentsRes.data)
-              ? appointmentsRes.data
-              : [];
+        const appointments =
+          appointmentsRes.data?.data?.appointments ||
+          appointmentsRes.data?.appointments ||
+          [];
 
         // Calculate stats
         const today = new Date().toISOString().split("T")[0];
@@ -63,8 +54,10 @@ export default function AdminDashboard() {
         ).length;
 
         const avgRating =
-          doctors.reduce((sum, doc) => sum + (doc.rating || 0), 0) /
-            doctors.length || 0;
+          doctors.length > 0
+            ? doctors.reduce((sum, doc) => sum + (doc.averageRating || 0), 0) /
+              doctors.length
+            : 0;
 
         setStats({
           totalDoctors: doctors.length,
@@ -168,11 +161,14 @@ export default function AdminDashboard() {
               </thead>
               <tbody>
                 {recentAppointments.map((apt) => (
-                  <tr key={apt.id} className="border-b border-gray-200">
+                  <tr key={apt._id} className="border-b border-gray-200">
                     <td className="py-3 px-4">{apt.patient?.name || "N/A"}</td>
                     <td className="py-3 px-4">{apt.doctor?.name || "N/A"}</td>
                     <td className="py-3 px-4">
-                      {new Date(apt.date).toLocaleDateString()}
+                      {/*  apt.date doesn't exist; field is appointmentDate. */}
+                      {apt.appointmentDate
+                        ? formatDate(apt.appointmentDate)
+                        : "N/A"}
                     </td>
                     <td className="py-3 px-4">
                       <span

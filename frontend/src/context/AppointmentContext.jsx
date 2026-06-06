@@ -19,6 +19,7 @@ const appointmentReducer = (state, action) => {
         upcoming: action.payload.upcoming || [],
         past: action.payload.past || [],
         isLoading: false,
+        error: null,
       };
     case "BOOK":
       return {
@@ -29,14 +30,14 @@ const appointmentReducer = (state, action) => {
       return {
         ...state,
         upcoming: state.upcoming.map((apt) =>
-          apt.id === action.payload ? { ...apt, status: "Cancelled" } : apt,
+          apt._id === action.payload ? { ...apt, status: "Cancelled" } : apt,
         ),
       };
     case "RATE":
       return {
         ...state,
         past: state.past.map((apt) =>
-          apt.id === action.payload.id
+          apt._id === action.payload.id
             ? { ...apt, rating: action.payload.rating }
             : apt,
         ),
@@ -57,9 +58,8 @@ export default function AppointmentProvider({ children }) {
     dispatch({ type: "SET_LOADING", payload: true });
     try {
       const response = await appointmentApi.getMyAppointments(params);
-      const appointments = response.data.data || response.data;
-      const upcoming = appointments.filter((apt) => apt.status === "Upcoming");
-      const past = appointments.filter((apt) => apt.status !== "Upcoming");
+      const { upcoming = [], past = [] } = response.data?.data || {};
+
       dispatch({
         type: "FETCH",
         payload: { upcoming, past },
@@ -80,16 +80,13 @@ export default function AppointmentProvider({ children }) {
     try {
       const response = await appointmentApi.bookAppointment(bookingData);
 
+      // Backend returns: { status, data: { appointment: {...} } }
       const appointment =
         response.data?.data?.appointment ||
         response.data?.data ||
         response.data;
 
-      dispatch({
-        type: "BOOK",
-        payload: appointment,
-      });
-
+      dispatch({ type: "BOOK", payload: appointment });
       return { success: true, appointment };
     } catch (error) {
       const errorMessage =
@@ -97,7 +94,6 @@ export default function AppointmentProvider({ children }) {
         error.message ||
         "Failed to book appointment";
 
-      // Check for appointment limit error (400 status)
       if (error.response?.status === 400 && errorMessage.includes("2 active")) {
         dispatch({
           type: "SET_ERROR",

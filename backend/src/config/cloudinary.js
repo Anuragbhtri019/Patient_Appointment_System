@@ -1,7 +1,5 @@
-import v2 from "cloudinary";
+import { v2 as cloudinary } from "cloudinary";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
-
-const cloudinary = v2.v2;
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_NAME,
@@ -14,11 +12,14 @@ const storage = new CloudinaryStorage({
   params: {
     folder: "doctors",
     allowed_formats: ["jpg", "jpeg", "png"],
-    resource_type: "auto",
-  },
-  filename: (req, file, cb) => {
-    const uniqueName = `${Date.now()}-${file.originalname}`;
-    cb(null, uniqueName);
+    resource_type: "image",
+    public_id: (req, file) => {
+      const timestamp = Date.now();
+      const name = file.originalname
+        .replace(/\.[^/.]+$/, "")
+        .replace(/\s+/g, "_");
+      return `${timestamp}-${name}`;
+    },
   },
 });
 

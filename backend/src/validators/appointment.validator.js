@@ -20,7 +20,9 @@ export const bookAppointmentRules = () => [
     .notEmpty()
     .withMessage("Consultation type is required")
     .isIn(["In-person", "Telehealth"])
-    .withMessage('Consultation type must be either "In-person" or "Telehealth"'),
+    .withMessage(
+      'Consultation type must be either "In-person" or "Telehealth"',
+    ),
 ];
 
 export const cancelAppointmentRules = () => [
@@ -43,4 +45,3 @@ export const rateAppointmentRules = () => [
     .isLength({ max: 1000 })
     .withMessage("Feedback must not exceed 1000 characters"),
 ];
-

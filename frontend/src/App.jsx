@@ -1,12 +1,5 @@
 import { Component } from "react";
-import { useEffect } from "react";
-import { Routes, Route, Navigate } from "react-router-dom";
-import ProtectedRoute from "./routes/ProtectedRoute";
-import AdminRoute from "./routes/AdminRoute";
-import LoginPage from "./pages/auth/LoginPage";
-import RegisterPage from "./pages/auth/RegisterPage";
-import PatientDashboard from "./pages/patient/PatientDashboard";
-import AdminDashboard from "./pages/admin/AdminDashboard";
+import AppRoutes from "./routes/AppRoutes";
 
 class ErrorBoundary extends Component {
   constructor(props) {
@@ -39,7 +32,7 @@ class ErrorBoundary extends Component {
                 this.setState({ hasError: false });
                 window.location.href = "/";
               }}
-              className="w-full bg-blue-500 text-white py-2 rounded-lg hover:bg-blue-600 transition"
+              className="w-full bg-teal-600 text-white py-2 rounded-lg hover:bg-teal-700 transition"
             >
               Go Home
             </button>
@@ -52,32 +45,15 @@ class ErrorBoundary extends Component {
   }
 }
 
+// ── App ───────────────────────────────────────────────────────────────────────
+// BrowserRouter, AuthProvider, AppointmentProvider, and ToastProvider are
+// all already present in main.jsx — do NOT add them here again or React
+// Router will throw "You cannot render a <Router> inside another <Router>"
+// and the context providers will create duplicate, disconnected instances.
 export default function App() {
-  useEffect(() => {}, []);
-
   return (
     <ErrorBoundary>
-      <Routes>
-        {/* ✅ Root route */}
-        <Route path="/" element={<Navigate to="/login" replace />} />
-
-        {/* ✅ Auth routes */}
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/register" element={<RegisterPage />} />
-
-        {/* ✅ Protected patient routes */}
-        <Route element={<ProtectedRoute />}>
-          <Route path="/patient-dashboard" element={<PatientDashboard />} />
-        </Route>
-
-        {/* ✅ Protected admin routes */}
-        <Route element={<AdminRoute />}>
-          <Route path="/admin-dashboard" element={<AdminDashboard />} />
-        </Route>
-
-        {/* ✅ Catch-all for 404s */}
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Routes>
+      <AppRoutes />
     </ErrorBoundary>
   );
 }

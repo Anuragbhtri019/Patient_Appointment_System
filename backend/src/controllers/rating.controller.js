@@ -6,7 +6,7 @@ import { incrementalAverage } from "../utils/ratingUtils.js";
 
 export const rateAppointment = catchAsync(async (req, res) => {
   const { appointmentId } = req.params;
-  const { rating } = req.body;
+  const { rating, feedback } = req.body;
 
   const appointment = await Appointment.findById(appointmentId);
 
@@ -28,6 +28,9 @@ export const rateAppointment = catchAsync(async (req, res) => {
 
   appointment.rating = rating;
   appointment.ratedAt = new Date();
+  if (feedback) {
+    appointment.feedback = feedback;
+  }
   await appointment.save();
 
   const doctor = await Doctor.findById(appointment.doctor);
@@ -35,15 +38,16 @@ export const rateAppointment = catchAsync(async (req, res) => {
   const { newAverage, newCount } = incrementalAverage(
     doctor.averageRating,
     doctor.totalRatings,
-    rating
+    rating,
   );
-  const updatedDoctor = await Doctor.findByIdAndUpdate(
+
+  await Doctor.findByIdAndUpdate(
     appointment.doctor,
     {
       averageRating: newAverage,
       totalRatings: newCount,
     },
-    { new: true, runValidators: true }
+    { new: true, runValidators: true },
   );
 
   res.status(200).json({

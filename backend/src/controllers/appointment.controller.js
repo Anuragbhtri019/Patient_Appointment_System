@@ -21,6 +21,12 @@ export const bookAppointment = catchAsync(async (req, res) => {
   if (slot.status === "Booked") {
     throw new AppError("This slot is already booked", 400);
   }
+  if (slot.consultationType !== consultationType) {
+    throw new AppError(
+      `This slot is only available for ${slot.consultationType} consultations`,
+      400,
+    );
+  }
 
   slot.status = "Booked";
   await schedule.save();
@@ -36,8 +42,8 @@ export const bookAppointment = catchAsync(async (req, res) => {
     status: "Upcoming",
   });
 
-  const populatedAppointment = await appointment
-    .populate("patient")
+  const populatedAppointment = await Appointment.findById(appointment._id)
+    .populate("patient", "name email")
     .populate("doctor")
     .populate("schedule");
 
@@ -64,7 +70,7 @@ export const getMyAppointments = catchAsync(async (req, res) => {
 
 export const getAllAppointments = catchAsync(async (req, res) => {
   const appointments = await Appointment.find()
-    .populate("patient")
+    .populate("patient", "name email")
     .populate("doctor")
     .populate("schedule")
     .sort("-createdAt");
@@ -96,11 +102,18 @@ export const cancelAppointment = catchAsync(async (req, res) => {
   }
 
   const schedule = await Schedule.findById(appointment.schedule);
-  const slot = schedule.timeSlots.id(appointment.slotId);
-  slot.status = "Available";
-  await schedule.save();
+  if (schedule) {
+    const slot = schedule.timeSlots.id(appointment.slotId);
+    if (slot) {
+      slot.status = "Available";
+      await schedule.save();
+    }
+  }
 
   appointment.status = "Cancelled";
+  if (req.body.reason) {
+    appointment.cancellationReason = req.body.reason;
+  }
   await appointment.save();
 
   res.status(200).json({
@@ -111,12 +124,22 @@ export const cancelAppointment = catchAsync(async (req, res) => {
 
 export const getAppointmentById = catchAsync(async (req, res) => {
   const appointment = await Appointment.findById(req.params.id)
-    .populate("patient")
+    .populate("patient", "name email")
     .populate("doctor")
     .populate("schedule");
 
   if (!appointment) {
     throw new AppError("Appointment not found", 404);
+  }
+
+  if (
+    appointment.patient._id.toString() !== req.user._id.toString() &&
+    req.user.role !== "admin"
+  ) {
+    throw new AppError(
+      "You do not have permission to view this appointment",
+      403,
+    );
   }
 
   res.status(200).json({

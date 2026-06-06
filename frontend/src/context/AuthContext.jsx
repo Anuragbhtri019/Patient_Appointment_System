@@ -40,7 +40,6 @@ export default function AuthProvider({ children }) {
 
   const clearSession = useCallback(() => {
     localStorage.removeItem("accessToken");
-    localStorage.removeItem("refreshToken");
     localStorage.removeItem("user");
     dispatch({ type: "LOGOUT" });
   }, []);
@@ -49,7 +48,8 @@ export default function AuthProvider({ children }) {
     dispatch({ type: "SET_LOADING", payload: true });
     try {
       const response = await authApi.login(email, password);
-      const { user, accessToken } = response.data.data || response.data;
+      // Backend returns: { status, data: { user, accessToken } }
+      const { user, accessToken } = response.data.data;
       localStorage.setItem("accessToken", accessToken);
       localStorage.setItem("user", JSON.stringify(user));
       dispatch({
@@ -94,15 +94,13 @@ export default function AuthProvider({ children }) {
     try {
       await authApi.logout({ skipAuthRefresh: true });
     } catch {
-      // Ignore logout error; the local session is cleared below.
+      // Ignore logout API error; local session is always cleared below.
     }
     clearSession();
   }, [clearSession]);
 
   useEffect(() => {
-    if (didRestoreSession.current) {
-      return;
-    }
+    if (didRestoreSession.current) return;
     didRestoreSession.current = true;
 
     const restoreSession = async () => {
@@ -111,16 +109,15 @@ export default function AuthProvider({ children }) {
 
       if (token && storedUser) {
         try {
-          // Validate the stored user data
           const parsedUser = JSON.parse(storedUser);
-          if (!parsedUser || !parsedUser._id) {
+          if (!parsedUser?._id) {
             clearSession();
             return;
           }
 
-          // Only call getMe if we have a valid token
           const response = await authApi.getMe();
-          const userData = response.data?.data || response.data;
+          const userData =
+            response.data?.data?.user || response.data?.data || response.data;
 
           dispatch({
             type: "LOGIN",

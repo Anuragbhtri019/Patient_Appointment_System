@@ -1,12 +1,12 @@
-import { useEffect, useState } from 'react';
-import { doctorApi } from '../../api/doctor.api';
-import { useDoctors } from '../../hooks/useDoctors';
-import DoctorTable from '../../components/doctor/DoctorTable';
-import DoctorForm from '../../components/doctor/DoctorForm';
-import Modal from '../../components/common/Modal';
-import Button from '../../components/common/Button';
-import { useToast } from '../../hooks/useToast';
-import { PlusIcon } from '@heroicons/react/24/outline';
+import { useState } from "react";
+import { doctorApi } from "../../api/doctor.api";
+import { useDoctors } from "../../hooks/useDoctors";
+import DoctorTable from "../../components/doctor/DoctorTable";
+import DoctorForm from "../../components/doctor/DoctorForm";
+import Modal from "../../components/common/Modal";
+import Button from "../../components/common/Button";
+import { useToast } from "../../hooks/useToast";
+import { PlusIcon } from "@heroicons/react/24/outline";
 
 export default function DoctorManagement() {
   const { doctors, isLoading, refetch } = useDoctors();
@@ -36,10 +36,10 @@ export default function DoctorManagement() {
     setIsDeletingId(deleteConfirm);
     try {
       await doctorApi.deleteDoctor(deleteConfirm);
-      showSuccess('Doctor deleted successfully');
+      showSuccess("Doctor deleted successfully");
       refetch();
     } catch (error) {
-      showError('Failed to delete doctor');
+      showError(error.response?.data?.message || "Failed to delete doctor");
     } finally {
       setDeleteConfirm(null);
       setIsDeletingId(null);
@@ -50,26 +50,28 @@ export default function DoctorManagement() {
     setIsSubmitting(true);
     try {
       const submitData = new FormData();
-      submitData.append('name', formData.name);
-      submitData.append('specialization', formData.specialization);
-      submitData.append('hospitalBranch', formData.branch);
+      submitData.append("name", formData.name);
+      submitData.append("specialization", formData.specialization);
+      // The DoctorForm stores the value under 'branch'; the backend accepts
+      // either 'hospitalBranch' or 'branch' (controller checks both).
+      submitData.append("hospitalBranch", formData.branch);
       if (formData.image) {
-        submitData.append('image', formData.image);
+        submitData.append("image", formData.image);
       }
 
-      if (selectedDoctor?.id) {
-        await doctorApi.updateDoctor(selectedDoctor.id, submitData);
-        showSuccess('Doctor updated successfully');
+      if (selectedDoctor?._id) {
+        await doctorApi.updateDoctor(selectedDoctor._id, submitData);
+        showSuccess("Doctor updated successfully");
       } else {
         await doctorApi.createDoctor(submitData);
-        showSuccess('Doctor added successfully');
+        showSuccess("Doctor added successfully");
       }
 
       setIsFormModalOpen(false);
       setSelectedDoctor(null);
       refetch();
     } catch (error) {
-      showError(error.response?.data?.message || 'Operation failed');
+      showError(error.response?.data?.message || "Operation failed");
     } finally {
       setIsSubmitting(false);
     }
@@ -80,7 +82,9 @@ export default function DoctorManagement() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Doctor Management</h2>
+          <h2 className="text-2xl font-bold text-gray-900">
+            Doctor Management
+          </h2>
           <p className="text-gray-600 mt-1">Manage all doctors in the system</p>
         </div>
         <Button
@@ -96,7 +100,9 @@ export default function DoctorManagement() {
       {/* Doctor table */}
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         {isLoading ? (
-          <div className="p-8 text-center text-gray-600">Loading doctors...</div>
+          <div className="p-8 text-center text-gray-600">
+            Loading doctors...
+          </div>
         ) : (
           <DoctorTable
             doctors={doctors}
@@ -113,7 +119,7 @@ export default function DoctorManagement() {
           setIsFormModalOpen(false);
           setSelectedDoctor(null);
         }}
-        title={selectedDoctor ? 'Edit Doctor' : 'Add New Doctor'}
+        title={selectedDoctor ? "Edit Doctor" : "Add New Doctor"}
         size="md"
       >
         <DoctorForm
@@ -136,7 +142,8 @@ export default function DoctorManagement() {
           size="sm"
         >
           <p className="text-gray-600 mb-6">
-            Are you sure you want to delete this doctor? This action cannot be undone.
+            Are you sure you want to delete this doctor? This action cannot be
+            undone.
           </p>
           <div className="flex gap-4">
             <Button

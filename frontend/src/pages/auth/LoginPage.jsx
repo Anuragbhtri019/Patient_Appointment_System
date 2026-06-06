@@ -2,7 +2,6 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import Button from "../../components/common/Button";
-import { useToast } from "../../hooks/useToast";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -35,9 +34,9 @@ export default function LoginPage() {
     const result = await login(formData.email, formData.password);
     if (result.success) {
       if (result.user?.role === "admin") {
-        navigate("./admin/admin-dashboard");
+        navigate("/admin", { replace: true });
       } else {
-        navigate("./patient/patient-dashboard");
+        navigate("/dashboard", { replace: true });
       }
     } else {
       setGeneralError(result.message);
@@ -59,7 +58,6 @@ export default function LoginPage() {
             </div>
           )}
 
-          {/* Email */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Email
@@ -79,7 +77,6 @@ export default function LoginPage() {
             )}
           </div>
 
-          {/* Password */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Password
@@ -99,7 +96,6 @@ export default function LoginPage() {
             )}
           </div>
 
-          {/* Submit */}
           <Button
             type="submit"
             variant="primary"

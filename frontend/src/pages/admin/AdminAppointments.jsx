@@ -1,14 +1,12 @@
 import { useEffect, useState } from "react";
 import { appointmentApi } from "../../api/appointment.api";
 import { useToast } from "../../hooks/useToast";
+import { formatDate, formatTime } from "../../utils/dateUtils";
 
 export default function AdminAppointments() {
   const [appointments, setAppointments] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [filters, setFilters] = useState({
-    status: "",
-    date: "",
-  });
+  const [filters, setFilters] = useState({ status: "", date: "" });
   const { showError } = useToast();
 
   useEffect(() => {
@@ -19,11 +17,11 @@ export default function AdminAppointments() {
           ...filters,
           limit: 100,
         });
+
         const appointmentData =
           response.data?.data?.appointments ??
           response.data?.appointments ??
-          response.data?.data ??
-          response.data;
+          [];
 
         setAppointments(Array.isArray(appointmentData) ? appointmentData : []);
       } catch {
@@ -36,8 +34,9 @@ export default function AdminAppointments() {
     fetchAppointments();
   }, [filters, showError]);
 
+  // The appointment date field is appointmentDate.
   const filteredAppointments = [...appointments].sort(
-    (a, b) => new Date(b.date) - new Date(a.date),
+    (a, b) => new Date(b.appointmentDate) - new Date(a.appointmentDate),
   );
 
   const getStatusColor = (status) => {
@@ -127,7 +126,7 @@ export default function AdminAppointments() {
               <tbody>
                 {filteredAppointments.map((apt) => (
                   <tr
-                    key={apt.id}
+                    key={apt._id}
                     className="border-b border-gray-200 hover:bg-gray-50"
                   >
                     <td className="py-3 px-4 text-gray-900">
@@ -137,11 +136,17 @@ export default function AdminAppointments() {
                       {apt.doctor?.name || "N/A"}
                     </td>
                     <td className="py-3 px-4 text-gray-600">
-                      {new Date(apt.date).toLocaleDateString()}{" "}
-                      {apt.time && `at ${apt.time}`}
+                      {/*  apt.date → apt.appointmentDate
+                                    apt.time → apt.timeSlot  */}
+                      {apt.appointmentDate
+                        ? formatDate(apt.appointmentDate)
+                        : "N/A"}
+                      {apt.timeSlot && ` at ${formatTime(apt.timeSlot)}`}
                     </td>
                     <td className="py-3 px-4 text-gray-600">
-                      {apt.consultation_type || "N/A"}
+                      {/* apt.consultation_type (snake_case) →
+                                    apt.consultationType (camelCase per model) */}
+                      {apt.consultationType || "N/A"}
                     </td>
                     <td className="py-3 px-4">
                       <span

@@ -1,5 +1,5 @@
-import { formatDate, formatTime } from '../../utils/dateUtils';
-import Badge from '../common/Badge';
+import { formatDate, formatTime } from "../../utils/dateUtils";
+import Badge from "../common/Badge";
 
 export default function SlotPicker({ slots, selectedSlot, onSelectSlot }) {
   if (!slots || slots.length === 0) {
@@ -11,19 +11,24 @@ export default function SlotPicker({ slots, selectedSlot, onSelectSlot }) {
   }
 
   const groupedSlots = slots.reduce((acc, slot) => {
-    const date = new Date(slot.date).toISOString().split('T')[0];
+    const date = new Date(slot.availableDate).toISOString().split("T")[0];
     if (!acc[date]) acc[date] = [];
     acc[date].push(slot);
     return acc;
   }, {});
 
   const dates = Object.keys(groupedSlots).sort();
-  const selectedDate = selectedSlot?.date?.split('T')[0] || dates[0];
+
+  //  selectedSlot comparison used `selectedSlot?.date` which
+  // is also undefined. Changed to `selectedSlot?.availableDate`.
+  const selectedDateKey = selectedSlot?.availableDate
+    ? new Date(selectedSlot.availableDate).toISOString().split("T")[0]
+    : dates[0];
 
   const getStatusVariant = (status) => {
-    if (status === 'available') return 'green';
-    if (status === 'booked') return 'red';
-    return 'gray';
+    if (status === "Available") return "green";
+    if (status === "Booked") return "red";
+    return "gray";
   };
 
   return (
@@ -34,14 +39,16 @@ export default function SlotPicker({ slots, selectedSlot, onSelectSlot }) {
           <button
             key={date}
             onClick={() => {
-              if (groupedSlots[date][0]) {
-                onSelectSlot(groupedSlots[date][0]);
-              }
+              // Select the first available slot on this date tab
+              const firstAvailable = groupedSlots[date].find(
+                (s) => s.status === "Available",
+              );
+              if (firstAvailable) onSelectSlot(firstAvailable);
             }}
             className={`px-4 py-2 rounded-lg whitespace-nowrap font-medium transition-colors ${
-              selectedDate === date
-                ? 'bg-teal-600 text-white'
-                : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+              selectedDateKey === date
+                ? "bg-teal-600 text-white"
+                : "bg-gray-200 text-gray-700 hover:bg-gray-300"
             }`}
           >
             {formatDate(date)}
@@ -51,23 +58,27 @@ export default function SlotPicker({ slots, selectedSlot, onSelectSlot }) {
 
       {/* Slot grid */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-        {groupedSlots[selectedDate]?.map((slot) => (
+        {groupedSlots[selectedDateKey]?.map((slot) => (
           <button
-            key={slot.id}
-            onClick={() => slot.status === 'available' && onSelectSlot(slot)}
-            disabled={slot.status === 'booked'}
+            key={slot._id}
+            onClick={() => slot.status === "Available" && onSelectSlot(slot)}
+            disabled={slot.status === "Booked"}
             className={`p-4 rounded-lg border-2 font-medium transition-all ${
-              selectedSlot?.id === slot.id
-                ? 'border-teal-600 bg-teal-50'
-                : 'border-gray-200 hover:border-gray-300'
-            } ${slot.status === 'booked' ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+              selectedSlot?._id === slot._id
+                ? "border-teal-600 bg-teal-50"
+                : "border-gray-200 hover:border-gray-300"
+            } ${
+              slot.status === "Booked"
+                ? "opacity-50 cursor-not-allowed"
+                : "cursor-pointer"
+            }`}
           >
             <div className="font-semibold text-lg">{formatTime(slot.time)}</div>
             <Badge variant={getStatusVariant(slot.status)} className="mt-2">
-              {slot.consultation_type}
+              {slot.consultationType}
             </Badge>
             <div className="text-xs mt-2 text-gray-600">
-              {slot.status === 'available' ? 'Available' : 'Booked'}
+              {slot.status === "Available" ? "Available" : "Booked"}
             </div>
           </button>
         ))}

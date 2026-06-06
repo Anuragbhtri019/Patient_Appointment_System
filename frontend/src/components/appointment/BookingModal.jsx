@@ -5,6 +5,7 @@ import SlotPicker from "./SlotPicker";
 import Avatar from "../common/Avatar";
 import Badge from "../common/Badge";
 import { formatDate, formatTime } from "../../utils/dateUtils";
+import { useAuth } from "../../hooks/useAuth";
 
 export default function BookingModal({
   isOpen,
@@ -15,13 +16,13 @@ export default function BookingModal({
   isLoading,
   onError,
 }) {
+  const { user } = useAuth();
   const [step, setStep] = useState(1);
   const [selectedSlot, setSelectedSlot] = useState(null);
   const [selectedSchedule, setSelectedSchedule] = useState(null);
-  const [patientName, setPatientName] = useState("");
   const [bookingError, setBookingError] = useState("");
 
-  // Extract all available slots from schedules
+  // Extract all available slots from all schedules
   const allAvailableSlots = schedules.flatMap((schedule) =>
     schedule.timeSlots
       .filter((slot) => slot.status === "Available")
@@ -47,11 +48,6 @@ export default function BookingModal({
   };
 
   const handleConfirm = async () => {
-    if (!patientName.trim()) {
-      setBookingError("Please enter your name");
-      return;
-    }
-
     setStep(3);
 
     const bookingData = {
@@ -64,11 +60,9 @@ export default function BookingModal({
     const result = await onConfirm(bookingData);
 
     if (!result.success) {
-      // FIXED: Better error handling with toast
       const errorMessage = result.message || "Failed to book appointment";
       setBookingError(errorMessage);
 
-      //  Trigger toast  for appointment limit error
       if (onError && errorMessage.includes("2 active appointments")) {
         onError("You cannot hold more than 2 active appointments");
       } else if (onError) {
@@ -83,7 +77,6 @@ export default function BookingModal({
     setStep(1);
     setSelectedSlot(null);
     setSelectedSchedule(null);
-    setPatientName("");
     setBookingError("");
     onClose();
   };
@@ -101,6 +94,7 @@ export default function BookingModal({
       }
       size="lg"
     >
+      {/* ── Step 1: Pick a slot ── */}
       {step === 1 && (
         <div>
           {bookingError && (
@@ -142,6 +136,7 @@ export default function BookingModal({
         </div>
       )}
 
+      {/* ── Step 2: Confirm ── */}
       {step === 2 && (
         <div>
           {bookingError && (
@@ -161,7 +156,6 @@ export default function BookingModal({
             </div>
 
             <div className="space-y-2 text-sm">
-              {/* Display correct slot details */}
               <p>
                 <span className="font-medium text-gray-700">Date:</span>{" "}
                 {formatDate(selectedSlot?.availableDate)}
@@ -176,18 +170,11 @@ export default function BookingModal({
               </p>
             </div>
 
-            {/* Patient name */}
             <div className="pt-4 border-t border-gray-200">
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Patient Name
-              </label>
-              <input
-                type="text"
-                value={patientName}
-                onChange={(e) => setPatientName(e.target.value)}
-                placeholder="Your name"
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none"
-              />
+              <p className="text-sm text-gray-600">
+                <span className="font-medium text-gray-700">Booking for:</span>{" "}
+                {user?.name || "You"}
+              </p>
             </div>
           </div>
 
@@ -204,7 +191,7 @@ export default function BookingModal({
               variant="primary"
               fullWidth
               onClick={handleConfirm}
-              disabled={!patientName.trim() || isLoading}
+              disabled={isLoading}
               isLoading={isLoading}
             >
               Confirm Booking
@@ -213,6 +200,7 @@ export default function BookingModal({
         </div>
       )}
 
+      {/* ── Step 3: Success ── */}
       {step === 3 && (
         <div className="text-center py-8">
           <div className="mb-4 text-6xl">✓</div>

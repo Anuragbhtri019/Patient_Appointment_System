@@ -8,7 +8,7 @@ const axiosInstance = axios.create({
   withCredentials: true,
 });
 
-//  Queue to handle concurrent 401s
+// Queue to handle concurrent 401s
 let isRefreshing = false;
 let failedQueue = [];
 
@@ -47,7 +47,7 @@ axiosInstance.interceptors.response.use(
 
     if (error.response?.status === 401 && !originalRequest._retry) {
       if (isRefreshing) {
-        //  Queue requests if already refreshing
+        // Queue requests if already refreshing
         return new Promise((resolve, reject) => {
           failedQueue.push({ resolve, reject });
         }).then((token) => {
@@ -65,19 +65,17 @@ axiosInstance.interceptors.response.use(
           null,
           { withCredentials: true },
         );
+        const { accessToken } = response.data.data;
 
-        const { access_token } = response.data;
-        localStorage.setItem("accessToken", access_token);
+        localStorage.setItem("accessToken", accessToken);
+        originalRequest.headers.Authorization = `Bearer ${accessToken}`;
 
-        originalRequest.headers.Authorization = `Bearer ${access_token}`;
-
-        //  Process queued requests
-        processQueue(null, access_token);
+        // Process queued requests with the new token
+        processQueue(null, accessToken);
 
         return axiosInstance(originalRequest);
       } catch (refreshError) {
         localStorage.removeItem("accessToken");
-        localStorage.removeItem("refreshToken");
         localStorage.removeItem("user");
 
         processQueue(refreshError, null);

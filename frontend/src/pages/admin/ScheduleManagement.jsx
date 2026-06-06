@@ -1,94 +1,163 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { doctorApi } from "../../api/doctor.api";
-import { appointmentApi } from "../../api/appointment.api";
+import { scheduleApi } from "../../api/schedule.api";
 import Button from "../../components/common/Button";
 import { useToast } from "../../hooks/useToast";
 import { CONSULTATION_TYPES } from "../../utils/constants";
-import { TrashIcon } from "@heroicons/react/24/outline";
+import { TrashIcon, PlusIcon } from "@heroicons/react/24/outline";
+
+function toAmPm(time24) {
+  if (!time24) return "";
+  const [hStr, mStr] = time24.split(":");
+  const h = parseInt(hStr, 10);
+  const ampm = h >= 12 ? "PM" : "AM";
+  const displayH = h % 12 || 12;
+  return `${String(displayH).padStart(2, "0")}:${mStr} ${ampm}`;
+}
 
 export default function ScheduleManagement() {
   const [doctors, setDoctors] = useState([]);
-  const [selectedDoctor, setSelectedDoctor] = useState(null);
+  const [selectedDoctorId, setSelectedDoctorId] = useState("");
   const [selectedDate, setSelectedDate] = useState("");
-  const [slots, setSlots] = useState([]);
+
+  // The schedule document for the currently selected doctor + date (if any)
+  const [existingSchedule, setExistingSchedule] = useState(null);
+  const [isFetchingSchedule, setIsFetchingSchedule] = useState(false);
+
   const [newSlot, setNewSlot] = useState({
     time: "09:00",
-    consultation_type: "in-person",
+    consultationType: "In-person",
   });
-  const [isLoading, setIsLoading] = useState(false);
-  const [isDeletingId, setIsDeletingId] = useState(null);
+  const [isAddingSlot, setIsAddingSlot] = useState(false);
+  const [isDeletingScheduleId, setIsDeletingScheduleId] = useState(null);
+
   const { showSuccess, showError } = useToast();
 
   useEffect(() => {
     const fetchDoctors = async () => {
       try {
-        const response = await doctorApi.getAllDoctors();
-        const doctors =
+        const response = await doctorApi.getAllDoctors({ limit: 1000 });
+        const list =
           response.data?.data?.doctors || response.data?.doctors || [];
-        setDoctors(doctors);
-      } catch (error) {
+        setDoctors(list);
+      } catch {
         showError("Failed to fetch doctors");
       }
     };
     fetchDoctors();
   }, [showError]);
 
-  useEffect(() => {
-    if (selectedDoctor && selectedDate) {
-      const fetchSlots = async () => {
-        try {
-          const response = await appointmentApi.getMyAppointments({
-            doctor_id: selectedDoctor,
-            date: selectedDate,
-          });
-          setSlots(response.data.available_slots || []);
-        } catch {
-          setSlots([]);
-        }
-      };
-      fetchSlots();
+  const fetchSchedule = useCallback(async () => {
+    if (!selectedDoctorId || !selectedDate) {
+      setExistingSchedule(null);
+      return;
     }
-  }, [selectedDoctor, selectedDate]);
+    setIsFetchingSchedule(true);
+    try {
+      const response = await scheduleApi.getSchedulesByDoctor(
+        selectedDoctorId,
+        { date: selectedDate },
+      );
+      const schedules =
+        response.data?.data?.schedules || response.data?.schedules || [];
+      // There is at most one schedule per doctor per date (unique index on model)
+      setExistingSchedule(schedules[0] || null);
+    } catch {
+      setExistingSchedule(null);
+    } finally {
+      setIsFetchingSchedule(false);
+    }
+  }, [selectedDoctorId, selectedDate]);
+
+  useEffect(() => {
+    fetchSchedule();
+  }, [fetchSchedule]);
 
   const handleAddSlot = async () => {
-    if (!selectedDoctor || !selectedDate || !newSlot.time) {
-      showError("Please select doctor, date, and time");
+    if (!selectedDoctorId || !selectedDate || !newSlot.time) {
+      showError("Please select a doctor, date, and time");
       return;
     }
 
-    setIsLoading(true);
-    try {
-      // This would typically call an API to create the slot
-      // For now, we'll add it to the local state
-      const slotData = {
-        id: Date.now(),
-        doctor_id: selectedDoctor,
-        date: selectedDate,
-        time: newSlot.time,
-        consultation_type: newSlot.consultation_type,
-        status: "available",
-      };
+    const timeAmPm = toAmPm(newSlot.time);
 
-      setSlots([...slots, slotData]);
-      setNewSlot({ time: "09:00", consultation_type: "in-person" });
+    // Guard: prevent duplicate times on the same schedule
+    if (existingSchedule) {
+      const duplicate = existingSchedule.timeSlots.some(
+        (s) =>
+          s.time === timeAmPm &&
+          s.consultationType === newSlot.consultationType,
+      );
+      if (duplicate) {
+        showError(
+          `A ${newSlot.consultationType} slot at ${timeAmPm} already exists`,
+        );
+        return;
+      }
+    }
+
+    setIsAddingSlot(true);
+    try {
+      if (existingSchedule) {
+        // Append the new slot to the existing schedule's timeSlots
+        const updatedSlots = [
+          ...existingSchedule.timeSlots,
+          { time: timeAmPm, consultationType: newSlot.consultationType },
+        ];
+        await scheduleApi.updateSchedule(existingSchedule._id, {
+          timeSlots: updatedSlots,
+        });
+      } else {
+        // Create a brand-new schedule for this doctor on this date
+        await scheduleApi.createSchedule({
+          doctorId: selectedDoctorId,
+          availableDate: selectedDate,
+          timeSlots: [
+            { time: timeAmPm, consultationType: newSlot.consultationType },
+          ],
+        });
+      }
+
       showSuccess("Slot added successfully");
+      setNewSlot({ time: "09:00", consultationType: "In-person" });
+      await fetchSchedule(); // Refresh the panel
     } catch (error) {
-      showError("Failed to add slot");
+      showError(error.response?.data?.message || "Failed to add slot");
     } finally {
-      setIsLoading(false);
+      setIsAddingSlot(false);
     }
   };
 
-  const handleDeleteSlot = async (slotId) => {
-    setIsDeletingId(slotId);
+  const handleDeleteSchedule = async (scheduleId) => {
+    if (
+      !window.confirm("Delete this entire schedule? All slots will be removed.")
+    )
+      return;
+    setIsDeletingScheduleId(scheduleId);
     try {
-      // Call API to delete slot
-      setSlots(slots.filter((s) => s.id !== slotId));
-      showSuccess("Slot deleted successfully");
+      await scheduleApi.deleteSchedule(scheduleId);
+      showSuccess("Schedule deleted successfully");
+      setExistingSchedule(null);
     } catch (error) {
-      showError("Failed to delete slot");
+      showError(error.response?.data?.message || "Failed to delete schedule");
     } finally {
-      setIsDeletingId(null);
+      setIsDeletingScheduleId(null);
+    }
+  };
+
+  const handleRemoveSlot = async (slotId) => {
+    if (!existingSchedule) return;
+    try {
+      const updatedSlots = existingSchedule.timeSlots.filter(
+        (s) => s._id !== slotId,
+      );
+      await scheduleApi.updateSchedule(existingSchedule._id, {
+        timeSlots: updatedSlots,
+      });
+      showSuccess("Slot removed");
+      await fetchSchedule();
+    } catch (error) {
+      showError(error.response?.data?.message || "Failed to remove slot");
     }
   };
 
@@ -107,7 +176,7 @@ export default function ScheduleManagement() {
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Selection panel */}
+        {/* ── Selection / add-slot panel ── */}
         <div className="lg:col-span-1">
           <div className="bg-white rounded-lg shadow-md p-6 space-y-4">
             {/* Doctor select */}
@@ -116,8 +185,8 @@ export default function ScheduleManagement() {
                 Select Doctor
               </label>
               <select
-                value={selectedDoctor || ""}
-                onChange={(e) => setSelectedDoctor(e.target.value)}
+                value={selectedDoctorId}
+                onChange={(e) => setSelectedDoctorId(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none"
               >
                 <option value="">Choose a doctor</option>
@@ -161,14 +230,14 @@ export default function ScheduleManagement() {
             {/* Consultation type */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Type
+                Consultation Type
               </label>
               <select
-                value={newSlot.consultation_type}
+                value={newSlot.consultationType}
                 onChange={(e) =>
                   setNewSlot((prev) => ({
                     ...prev,
-                    consultation_type: e.target.value,
+                    consultationType: e.target.value,
                   }))
                 }
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-teal-500 outline-none"
@@ -185,56 +254,90 @@ export default function ScheduleManagement() {
               variant="primary"
               fullWidth
               onClick={handleAddSlot}
-              isLoading={isLoading}
+              isLoading={isAddingSlot}
+              disabled={!selectedDoctorId || !selectedDate || isAddingSlot}
+              className="flex items-center justify-center gap-2"
             >
+              <PlusIcon className="w-4 h-4" />
               Add Slot
             </Button>
           </div>
         </div>
 
-        {/* Slots list */}
+        {/* ── Slots list ── */}
         <div className="lg:col-span-2">
           <div className="bg-white rounded-lg shadow-md p-6">
-            <h3 className="font-semibold text-lg text-gray-900 mb-4">
-              {selectedDoctor && selectedDate
-                ? `Slots for ${selectedDate}`
-                : "Select doctor and date to view slots"}
-            </h3>
+            {/* Panel header */}
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-semibold text-lg text-gray-900">
+                {selectedDoctorId && selectedDate
+                  ? `Slots for ${selectedDate}`
+                  : "Select doctor and date to view slots"}
+              </h3>
+              {existingSchedule && (
+                <button
+                  onClick={() => handleDeleteSchedule(existingSchedule._id)}
+                  disabled={isDeletingScheduleId === existingSchedule._id}
+                  className="text-sm text-red-600 hover:underline disabled:opacity-50"
+                >
+                  {isDeletingScheduleId === existingSchedule._id
+                    ? "Deleting…"
+                    : "Delete all slots"}
+                </button>
+              )}
+            </div>
 
-            {selectedDoctor && selectedDate ? (
-              slots.length === 0 ? (
-                <p className="text-gray-600 text-center py-8">
-                  No slots added yet
-                </p>
-              ) : (
-                <div className="space-y-2">
-                  {slots.map((slot) => (
-                    <div
-                      key={slot.id}
-                      className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
-                    >
-                      <div className="flex-1">
-                        <div className="font-medium text-gray-900">
-                          {slot.time}
-                        </div>
-                        <div className="text-sm text-gray-600">
-                          {slot.consultation_type}
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleDeleteSlot(slot.id)}
-                        disabled={isDeletingId === slot.id}
-                        className="p-2 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-50"
-                      >
-                        <TrashIcon className="w-4 h-4 text-red-600" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )
-            ) : (
+            {/* Content */}
+            {!selectedDoctorId || !selectedDate ? (
               <div className="py-8 text-center text-gray-500">
                 Select a doctor and date to manage slots
+              </div>
+            ) : isFetchingSchedule ? (
+              <div className="py-8 text-center text-gray-500">
+                Loading slots…
+              </div>
+            ) : !existingSchedule || existingSchedule.timeSlots.length === 0 ? (
+              <p className="text-gray-600 text-center py-8">
+                No slots yet — add one using the panel on the left
+              </p>
+            ) : (
+              <div className="space-y-2">
+                {existingSchedule.timeSlots.map((slot) => (
+                  <div
+                    key={slot._id}
+                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+                  >
+                    <div className="flex-1">
+                      <div className="font-medium text-gray-900">
+                        {slot.time}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {slot.consultationType}
+                      </div>
+                      <div
+                        className={`text-xs mt-1 font-medium ${
+                          slot.status === "Available"
+                            ? "text-green-600"
+                            : "text-red-500"
+                        }`}
+                      >
+                        {slot.status}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleRemoveSlot(slot._id)}
+                      disabled={slot.status === "Booked"}
+                      title={
+                        slot.status === "Booked"
+                          ? "Cannot remove a booked slot"
+                          : "Remove slot"
+                      }
+                      className="p-2 hover:bg-gray-200 rounded-lg transition-colors disabled:opacity-30"
+                    >
+                      <TrashIcon className="w-4 h-4 text-red-600" />
+                    </button>
+                  </div>
+                ))}
               </div>
             )}
           </div>

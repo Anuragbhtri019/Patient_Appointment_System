@@ -12,6 +12,7 @@ export default function AppointmentCard({
   isCancelling,
   isRating,
 }) {
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
   const [showRating, setShowRating] = useState(false);
   const [rating, setRating] = useState(appointment?.rating || 0);
 
@@ -22,10 +23,17 @@ export default function AppointmentCard({
     return "gray";
   };
 
+  const handleCancelClick = () => {
+    setShowCancelConfirm(true);
+  };
+
   const handleConfirmCancel = () => {
-    if (window.confirm("Are you sure you want to cancel this appointment?")) {
-      onCancel?.(appointment._id);
-    }
+    setShowCancelConfirm(false);
+    onCancel?.(appointment._id);
+  };
+
+  const handleDismissCancel = () => {
+    setShowCancelConfirm(false);
   };
 
   const handleSubmitRating = async () => {
@@ -39,6 +47,7 @@ export default function AppointmentCard({
 
   return (
     <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
+      {/* Doctor info header */}
       <div className="flex items-start gap-4 mb-4">
         <Avatar
           name={appointment?.doctor?.name || "Doctor"}
@@ -62,17 +71,16 @@ export default function AppointmentCard({
         </div>
       </div>
 
+      {/* Appointment details */}
       <div className="space-y-2 text-sm text-gray-600 mb-4">
         <p>
           <span className="font-medium text-gray-900">Date:</span>{" "}
           {formatDate(appointmentDate)}
         </p>
-
         <p>
           <span className="font-medium text-gray-900">Time:</span>{" "}
           {formatTime(timeSlot)}
         </p>
-
         <p>
           <span className="font-medium text-gray-900">Type:</span>{" "}
           {consultationType}
@@ -81,19 +89,53 @@ export default function AppointmentCard({
 
       {/* Actions */}
       <div className="border-t border-gray-200 pt-4">
-        {appointment?.status === "Upcoming" && (
+        {appointment?.status === "Upcoming" && !showCancelConfirm && (
           <Button
             variant="danger"
             size="sm"
             fullWidth
-            onClick={handleConfirmCancel}
+            onClick={handleCancelClick}
             isLoading={isCancelling}
+            disabled={isCancelling}
           >
             Cancel Appointment
           </Button>
         )}
 
-        {/* FIXED: Rating modal shows when status is Completed AND no rating exists */}
+        {/* ── Inline cancel confirmation  */}
+        {showCancelConfirm && (
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
+            <p className="text-sm font-medium text-red-800 mb-1">
+              Cancel this appointment?
+            </p>
+            <p className="text-xs text-red-600 mb-4">
+              This action cannot be undone. The slot will be released.
+            </p>
+            <div className="flex gap-3">
+              <Button
+                variant="secondary"
+                size="sm"
+                fullWidth
+                onClick={handleDismissCancel}
+                disabled={isCancelling}
+              >
+                Keep it
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                fullWidth
+                onClick={handleConfirmCancel}
+                isLoading={isCancelling}
+                disabled={isCancelling}
+              >
+                Yes, cancel
+              </Button>
+            </div>
+          </div>
+        )}
+
+        {/* Rate Visit button */}
         {appointment?.status === "Completed" &&
           !appointment?.rating &&
           !showRating && (
@@ -107,6 +149,7 @@ export default function AppointmentCard({
             </Button>
           )}
 
+        {/* Already rated */}
         {appointment?.status === "Completed" && appointment?.rating && (
           <div className="text-center">
             <p className="text-sm text-gray-600">Your rating:</p>
@@ -117,7 +160,7 @@ export default function AppointmentCard({
         )}
       </div>
 
-      {/* Rating Modal */}
+      {/* ── Inline rating panel  */}
       {showRating && (
         <div className="mt-4 p-4 bg-gray-50 rounded-lg">
           <p className="text-sm font-medium text-gray-900 mb-3">

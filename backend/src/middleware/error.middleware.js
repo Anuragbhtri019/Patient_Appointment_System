@@ -6,7 +6,13 @@ const handleCastErrorDB = (err) => {
 };
 
 const handleDuplicateFieldsDB = (err) => {
-  const value = err.errmsg.match(/(["'])(\\?.)*?\1/)[0];
+  let value;
+  if (err.keyValue) {
+    value = Object.values(err.keyValue)[0];
+  } else {
+    const match = err.message.match(/(['"])(\\?.)*?\1/);
+    value = match ? match[0] : "unknown";
+  }
   const message = `Duplicate field value: ${value}. Please use another value!`;
   return new AppError(message, 400);
 };
@@ -53,13 +59,14 @@ export const errorHandler = (err, req, res, next) => {
 
   if (process.env.NODE_ENV === "development") {
     sendErrorDev(err, res);
-  } else if (process.env.NODE_ENV === "production") {
+  } else {
+    // Covers "production", "test", "staging", and any unset NODE_ENV
     let error = { ...err };
     error.message = err.message;
 
     if (err.name === "CastError") error = handleCastErrorDB(err);
     if (err.code === 11000) error = handleDuplicateFieldsDB(err);
-    if (err.name === "ValidationError") error = handleValidationErrorDB(err); // ✅ ADDED
+    if (err.name === "ValidationError") error = handleValidationErrorDB(err);
     if (err.name === "JsonWebTokenError") error = handleJWTError();
     if (err.name === "TokenExpiredError") error = handleJWTExpiredError();
 

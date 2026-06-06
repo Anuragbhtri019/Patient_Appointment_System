@@ -28,6 +28,7 @@ const appointmentSchema = new mongoose.Schema(
     consultationType: {
       type: String,
       required: [true, "Consultation type is required"],
+      enum: ["In-person", "Telehealth"],
     },
     appointmentDate: {
       type: Date,
@@ -48,16 +49,29 @@ const appointmentSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
-    createdAt: {
-      type: Date,
-      default: Date.now,
+    //  The rateAppointmentRules() validator validates a 'feedback'
+    // field but the model had no such field — it was silently dropped on save.
+    // Added here so feedback is persisted and the validator is meaningful.
+    feedback: {
+      type: String,
+      trim: true,
+      maxlength: [1000, "Feedback must not exceed 1000 characters"],
+      default: null,
+    },
+    //  The cancelAppointmentRules() validator validates a 'reason'
+    // field but the model had no such field and the cancel controller never
+    // read or saved it. Added here so cancellation reason is persisted.
+    cancellationReason: {
+      type: String,
+      trim: true,
+      maxlength: [500, "Cancellation reason must not exceed 500 characters"],
+      default: null,
     },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 appointmentSchema.index({ patient: 1, status: 1 });
 
 const Appointment = mongoose.model("Appointment", appointmentSchema);
 export default Appointment;
-

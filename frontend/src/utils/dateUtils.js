@@ -1,18 +1,25 @@
-import { format, isPast as dateIsPast, differenceInDays } from 'date-fns';
+import { format, isPast as dateIsPast, differenceInDays } from "date-fns";
 
 export const formatDate = (date) => {
-  if (!date) return '';
+  if (!date) return "";
   const d = new Date(date);
-  return format(d, 'EEE, MMM d yyyy');
+  return format(d, "EEE, MMM d yyyy");
 };
 
 export const formatTime = (time) => {
-  if (!time) return '';
-  const [hours, minutes] = time.split(':');
+  if (!time) return "";
+
+  // Already in "HH:MM AM/PM" format — return unchanged
+  if (/\b(AM|PM)\b/i.test(time)) {
+    return time.trim();
+  }
+
+  // Convert 24-hour "HH:MM" to "HH:MM AM/PM"
+  const [hours, minutes] = time.split(":");
   const hour = parseInt(hours, 10);
-  const ampm = hour >= 12 ? 'PM' : 'AM';
+  const ampm = hour >= 12 ? "PM" : "AM";
   const displayHour = hour % 12 || 12;
-  return `${displayHour.toString().padStart(2, '0')}:${minutes} ${ampm}`;
+  return `${String(displayHour).padStart(2, "0")}:${minutes} ${ampm}`;
 };
 
 export const isPast = (date) => {
