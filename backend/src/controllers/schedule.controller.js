@@ -65,15 +65,21 @@ export const getSchedulesByDoctor = catchAsync(async (req, res) => {
 export const updateSchedule = catchAsync(async (req, res) => {
   const { timeSlots } = req.body;
 
-  const schedule = await Schedule.findByIdAndUpdate(
+  const schedule = await Schedule.findById(req.params.id);
+  if (!schedule) {
+    throw new AppError("Schedule not found", 404);
+  }
+
+  const updatedSchedule = await Schedule.findByIdAndUpdate(
     req.params.id,
     { timeSlots },
     { new: true, runValidators: true },
   ).populate("doctor");
 
-  if (!schedule) {
-    throw new AppError("Schedule not found", 404);
-  }
+  res.status(200).json({
+    status: "success",
+    data: { schedule: updatedSchedule },
+  });
 
   res.status(200).json({
     status: "success",

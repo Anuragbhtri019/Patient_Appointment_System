@@ -1,39 +1,44 @@
 import { useState } from "react";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, useLocation, Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import Button from "../../components/common/Button";
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { login, isLoading } = useAuth();
+  const redirectMessage = location.state?.message || "";
+  const redirectTo = location.state?.from || null;
+
   const [formData, setFormData] = useState({ email: "", password: "" });
   const [errors, setErrors] = useState({});
   const [generalError, setGeneralError] = useState("");
 
-  const validateForm = () => {
-    const newErrors = {};
-    if (!formData.email) newErrors.email = "Email is required";
-    if (!formData.password) newErrors.password = "Password is required";
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+  const validate = () => {
+    const e = {};
+    if (!formData.email) e.email = "Email is required";
+    if (!formData.password) e.password = "Password is required";
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: "" }));
-    }
+    setFormData((p) => ({ ...p, [name]: value }));
+    if (errors[name]) setErrors((p) => ({ ...p, [name]: "" }));
   };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setGeneralError("");
-    if (!validateForm()) return;
+    if (!validate()) return;
 
     const result = await login(formData.email, formData.password);
     if (result.success) {
-      if (result.user?.role === "admin") {
+      // If there was a redirect origin, go back there; otherwise use role default
+      if (redirectTo) {
+        navigate(redirectTo, { replace: true });
+      } else if (result.user?.role === "admin") {
         navigate("/admin", { replace: true });
       } else {
         navigate("/dashboard", { replace: true });
@@ -50,6 +55,13 @@ export default function LoginPage() {
           <h1 className="text-3xl font-bold text-teal-600 mb-2">HealthHub</h1>
           <p className="text-gray-600">Patient Appointment System</p>
         </div>
+
+        {/* Contextual redirect message */}
+        {redirectMessage && (
+          <div className="mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-blue-700 text-sm text-center">
+            {redirectMessage}
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {generalError && (

@@ -60,11 +60,12 @@ axiosInstance.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        const response = await axios.post(
-          `${API_BASE_URL}/auth/refresh`,
-          null,
-          { withCredentials: true },
-        );
+        if (originalRequest.url?.includes("/auth/refresh")) {
+          return Promise.reject(error);
+        }
+        const response = await axiosInstance.post("/auth/refresh", null, {
+          skipAuthRefresh: true,
+        });
         const { accessToken } = response.data.data;
 
         localStorage.setItem("accessToken", accessToken);

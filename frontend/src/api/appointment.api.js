@@ -6,6 +6,8 @@ export const appointmentApi = {
     axiosInstance.get("/appointments/my-appointments", { params }),
   getAllAppointments: (params) =>
     axiosInstance.get("/appointments", { params }),
-  cancelAppointment: (id) => axiosInstance.patch(`/appointments/${id}/cancel`),
   getAppointmentById: (id) => axiosInstance.get(`/appointments/${id}`),
+
+  cancelAppointment: (id, reason) =>
+    axiosInstance.patch(`/appointments/${id}/cancel`, { reason }),
 };

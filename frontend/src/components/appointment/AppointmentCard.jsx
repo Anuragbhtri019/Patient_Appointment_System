@@ -13,6 +13,7 @@ export default function AppointmentCard({
   isRating,
 }) {
   const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+  const [cancelReason, setCancelReason] = useState("");
   const [showRating, setShowRating] = useState(false);
   const [rating, setRating] = useState(appointment?.rating || 0);
 
@@ -24,16 +25,14 @@ export default function AppointmentCard({
   };
 
   const handleCancelClick = () => {
+    setCancelReason("");
     setShowCancelConfirm(true);
   };
 
   const handleConfirmCancel = () => {
     setShowCancelConfirm(false);
-    onCancel?.(appointment._id);
-  };
-
-  const handleDismissCancel = () => {
-    setShowCancelConfirm(false);
+    onCancel?.(appointment._id, cancelReason.trim() || undefined);
+    setCancelReason("");
   };
 
   const handleSubmitRating = async () => {
@@ -41,21 +40,19 @@ export default function AppointmentCard({
     setShowRating(false);
   };
 
-  const appointmentDate = appointment?.appointmentDate;
-  const timeSlot = appointment?.timeSlot;
-  const consultationType = appointment?.consultationType;
-
   return (
     <div className="bg-white rounded-lg shadow-md p-6 hover:shadow-lg transition-shadow">
-      {/* Doctor info header */}
+      {/*  Doctor info header */}
       <div className="flex items-start gap-4 mb-4">
         <Avatar
           name={appointment?.doctor?.name || "Doctor"}
           size="lg"
-          src={appointment?.doctor?.imageUrl}
+          src={
+            appointment?.doctor?.imageUrl || appointment?.doctor?.profileImage
+          }
         />
         <div className="flex-1">
-          <div className="flex items-start justify-between">
+          <div className="flex items-start justify-between gap-2">
             <div>
               <h3 className="font-semibold text-lg text-gray-900">
                 {appointment?.doctor?.name}
@@ -71,24 +68,32 @@ export default function AppointmentCard({
         </div>
       </div>
 
-      {/* Appointment details */}
-      <div className="space-y-2 text-sm text-gray-600 mb-4">
+      {/* Appointment details  */}
+      <div className="space-y-1 text-sm text-gray-600 mb-4">
         <p>
           <span className="font-medium text-gray-900">Date:</span>{" "}
-          {formatDate(appointmentDate)}
+          {formatDate(appointment?.appointmentDate)}
         </p>
         <p>
           <span className="font-medium text-gray-900">Time:</span>{" "}
-          {formatTime(timeSlot)}
+          {formatTime(appointment?.timeSlot)}
         </p>
         <p>
           <span className="font-medium text-gray-900">Type:</span>{" "}
-          {consultationType}
+          {appointment?.consultationType}
         </p>
+        {/* Show saved cancellation reason if present */}
+        {appointment?.status === "Cancelled" &&
+          appointment?.cancellationReason && (
+            <p className="mt-2 text-xs text-red-600 italic">
+              Reason: {appointment.cancellationReason}
+            </p>
+          )}
       </div>
 
-      {/* Actions */}
-      <div className="border-t border-gray-200 pt-4">
+      {/*  Actions */}
+      <div className="border-t border-gray-200 pt-4 space-y-3">
+        {/* Cancel button — only when upcoming and confirm panel is not shown */}
         {appointment?.status === "Upcoming" && !showCancelConfirm && (
           <Button
             variant="danger"
@@ -102,21 +107,44 @@ export default function AppointmentCard({
           </Button>
         )}
 
-        {/* ── Inline cancel confirmation  */}
+        {/*  Inline cancel confirmation */}
         {showCancelConfirm && (
-          <div className="rounded-lg border border-red-200 bg-red-50 p-4">
-            <p className="text-sm font-medium text-red-800 mb-1">
-              Cancel this appointment?
-            </p>
-            <p className="text-xs text-red-600 mb-4">
-              This action cannot be undone. The slot will be released.
-            </p>
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4 space-y-3">
+            <div>
+              <p className="text-sm font-semibold text-red-800">
+                Cancel this appointment?
+              </p>
+              <p className="text-xs text-red-500 mt-0.5">
+                This cannot be undone. The time slot will be released.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-red-700 mb-1">
+                Reason for cancellation{" "}
+                <span className="font-normal text-red-400">(optional)</span>
+              </label>
+              <textarea
+                value={cancelReason}
+                onChange={(e) => setCancelReason(e.target.value)}
+                placeholder="e.g. schedule conflict, feeling better…"
+                maxLength={500}
+                rows={3}
+                className="w-full px-3 py-2 text-sm border border-red-200 rounded-lg
+                           bg-white text-gray-800 placeholder-gray-400
+                           focus:outline-none focus:ring-2 focus:ring-red-400 resize-none"
+              />
+              <p className="text-right text-xs text-red-400 mt-0.5">
+                {cancelReason.length}/500
+              </p>
+            </div>
+
             <div className="flex gap-3">
               <Button
                 variant="secondary"
                 size="sm"
                 fullWidth
-                onClick={handleDismissCancel}
+                onClick={() => setShowCancelConfirm(false)}
                 disabled={isCancelling}
               >
                 Keep it
@@ -151,16 +179,14 @@ export default function AppointmentCard({
 
         {/* Already rated */}
         {appointment?.status === "Completed" && appointment?.rating && (
-          <div className="text-center">
-            <p className="text-sm text-gray-600">Your rating:</p>
-            <div className="flex justify-center mt-2">
-              <StarRating value={appointment?.rating} readonly size="sm" />
-            </div>
+          <div className="text-center py-1">
+            <p className="text-xs text-gray-500 mb-1">Your rating</p>
+            <StarRating value={appointment.rating} readonly size="sm" />
           </div>
         )}
       </div>
 
-      {/* ── Inline rating panel  */}
+      {/*  Inline rating panel  */}
       {showRating && (
         <div className="mt-4 p-4 bg-gray-50 rounded-lg">
           <p className="text-sm font-medium text-gray-900 mb-3">
@@ -184,7 +210,7 @@ export default function AppointmentCard({
               disabled={rating === 0 || isRating}
               isLoading={isRating}
             >
-              Submit Rating
+              Submit
             </Button>
           </div>
         </div>

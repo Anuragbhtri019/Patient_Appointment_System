@@ -7,4 +7,12 @@ export const authApi = {
   logout: (config = {}) => axiosInstance.post("/auth/logout", null, config),
   refresh: () => axiosInstance.post("/auth/refresh", null),
   getMe: () => axiosInstance.get("/auth/me"),
+
+  // Profile management
+  updateProfile: (data) =>
+    axiosInstance.patch("/auth/profile", data, {
+      headers: { "Content-Type": "multipart/form-data" },
+    }),
+  changePassword: (data) => axiosInstance.patch("/auth/change-password", data),
+  deleteProfileImage: () => axiosInstance.delete("/auth/profile-image"),
 };

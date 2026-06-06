@@ -1,6 +1,6 @@
 import axiosInstance from "./axiosInstance";
 
 export const ratingApi = {
-  rateAppointment: (appointmentId, rating) =>
-    axiosInstance.post(`/ratings/${appointmentId}/rate`, { rating }),
+  rateAppointment: (appointmentId, rating, feedback = "") =>
+    axiosInstance.post(`/ratings/${appointmentId}/rate`, { rating, feedback }),
 };

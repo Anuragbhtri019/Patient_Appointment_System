@@ -30,13 +30,14 @@ const userSchema = new mongoose.Schema(
       enum: ["patient", "admin"],
       default: "patient",
     },
-    refreshToken: {
+
+    profileImage: {
       type: String,
       default: null,
     },
-    createdAt: {
-      type: Date,
-      default: Date.now,
+    refreshToken: {
+      type: String,
+      default: null,
     },
   },
   { timestamps: true },

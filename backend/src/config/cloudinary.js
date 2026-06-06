@@ -7,6 +7,7 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 });
 
+// Storage for doctor images  →  folder: "doctors"
 const storage = new CloudinaryStorage({
   cloudinary,
   params: {
@@ -23,4 +24,19 @@ const storage = new CloudinaryStorage({
   },
 });
 
-export { cloudinary, storage };
+// Storage for user profile images  →  folder: "profiles"
+const profileStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: "profiles",
+    allowed_formats: ["jpg", "jpeg", "png"],
+    resource_type: "image",
+    public_id: (req, file) => {
+      const timestamp = Date.now();
+      const userId = req.user?._id || "unknown";
+      return `${userId}-${timestamp}`;
+    },
+  },
+});
+
+export { cloudinary, storage, profileStorage };

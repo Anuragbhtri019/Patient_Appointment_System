@@ -94,7 +94,7 @@ export const createDoctor = catchAsync(async (req, res) => {
     name,
     specialization,
     email,
-    hospitalBranch: hospitalBranch || branch,
+    hospitalBranch,
     imageUrl,
     createdBy: req.user._id,
   });
@@ -103,7 +103,7 @@ export const createDoctor = catchAsync(async (req, res) => {
 });
 
 export const updateDoctor = catchAsync(async (req, res) => {
-  const { name, specialization, email, hospitalBranch, branch } = req.body;
+  const { name, specialization, email, hospitalBranch } = req.body;
 
   const doctor = await Doctor.findById(req.params.id);
   if (!doctor) {
@@ -136,7 +136,7 @@ export const updateDoctor = catchAsync(async (req, res) => {
       name: name || doctor.name,
       specialization: specialization || doctor.specialization,
       email: email || doctor.email,
-      hospitalBranch: hospitalBranch || branch || doctor.hospitalBranch,
+      hospitalBranch: hospitalBranch || doctor.hospitalBranch,
       imageUrl,
     },
     { new: true, runValidators: true },
@@ -171,7 +171,7 @@ export const deleteDoctor = catchAsync(async (req, res) => {
 
   await Doctor.findByIdAndDelete(req.params.id);
 
-  res.status(204).json({
+  res.status(200).json({
     status: "success",
     message: "Doctor deleted successfully",
     data: null,
