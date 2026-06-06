@@ -6,7 +6,11 @@ import { startCronJobs } from "./utils/cronJobs.js";
 dotenv.config();
 
 const PORT = process.env.PORT || 5000;
-
+app.get("/", (req, res) => {
+  res.status(200).json({
+    message: "API is running successfully 🚀",
+  });
+});
 const startServer = async () => {
   try {
     await connectDB();
@@ -34,4 +38,3 @@ process.on("uncaughtException", (err) => {
 });
 
 startServer();
-
