@@ -7,9 +7,6 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "build": "vite build",
-    "lint": "eslint .",
-    "preview": "vite preview",
     "seed": "node src/utils/seedData.js",
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --detectOpenHandles --forceExit",
     "testwatch": "cross-env NODE_OPTIONS=--experimental-vm-modules jest --watch"
