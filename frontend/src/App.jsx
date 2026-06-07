@@ -45,7 +45,7 @@ class ErrorBoundary extends Component {
   }
 }
 
-// ── App ───────────────────────────────────────────────────────────────────────
+//  App
 // BrowserRouter, AuthProvider, AppointmentProvider, and ToastProvider are
 // all already present in main.jsx — do NOT add them here again or React
 // Router will throw "You cannot render a <Router> inside another <Router>"

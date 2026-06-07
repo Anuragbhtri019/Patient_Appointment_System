@@ -447,7 +447,7 @@ export default function ProfilePage() {
                   (profileForm.email !== user?.email &&
                     emailAvailable === false)
                 }
-                className="w-full bg-teal-600 hover:bg-teal-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                className="w-full bg-teal-600 hover:bg-teal-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-lg"
               >
                 Save Changes
               </Button>
@@ -475,6 +475,7 @@ export default function ProfilePage() {
                 type="password"
                 name="oldPassword"
                 value={passwordForm.oldPassword}
+                
                 onChange={handlePasswordInputChange}
                 className={`w-full px-4 py-2 border rounded-lg focus:ring-2 focus:ring-teal-500 outline-none transition ${
                   passwordErrors.oldPassword
@@ -548,7 +549,7 @@ export default function ProfilePage() {
                 variant="primary"
                 isLoading={isLoadingPassword}
                 disabled={isLoadingPassword}
-                className="w-full bg-teal-600 hover:bg-teal-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
+                className="w-full bg-teal-600 hover:bg-teal-700 disabled:bg-gray-400 disabled:cursor-not-allowed rounded-lg"
               >
                 Change Password
               </Button>

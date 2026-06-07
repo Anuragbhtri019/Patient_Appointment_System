@@ -452,6 +452,334 @@ curl -X POST http://localhost:5000/api/ratings \
   }'
 ```
 
+# Appointment Status APIs
+
+## 1. Manually Update Appointment Statuses
+
+Manually triggers appointment status updates.
+
+This endpoint can be used when the automatic cron job is unavailable or when statuses need to be updated immediately without waiting for the next scheduled execution.
+
+### Endpoint
+
+```http
+POST /api/appointments/update-statuses
+```
+
+### Authentication
+
+Required (Admin Only)
+
+### Request Body
+
+```json
+{
+  "option": "complete-1h"
+}
+```
+
+### Available Options
+
+| Option         | Description                                                                |
+| -------------- | -------------------------------------------------------------------------- |
+| `complete-1h`  | Mark appointments as completed 1 hour after the appointment end time.      |
+| `complete-now` | Mark appointments as completed immediately after the appointment end time. |
+
+### Success Response (200)
+
+```json
+{
+  "status": "success",
+  "message": "Updated 5 appointments to Completed",
+  "data": {
+    "updatedCount": 5,
+    "option": "complete-1h",
+    "timestamp": "2024-03-10T14:30:00.000Z"
+  }
+}
+```
+
+### Error Response (400)
+
+```json
+{
+  "status": "fail",
+  "message": "Invalid option. Use \"complete-1h\" or \"complete-now\""
+}
+```
+
+### Example Request
+
+```http
+POST http://localhost:5000/api/appointments/update-statuses
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+```json
+{
+  "option": "complete-1h"
+}
+```
+
+---
+
+## 2. Get Real-Time Appointment Status
+
+Returns the real-time status of a single appointment without updating the database.
+
+Useful for displaying accurate appointment status on the frontend.
+
+### Endpoint
+
+```http
+GET /api/appointments/:id/check-status
+```
+
+### Authentication
+
+Required
+
+### Path Parameters
+
+| Parameter | Type   | Description    |
+| --------- | ------ | -------------- |
+| `id`      | String | Appointment ID |
+
+### Success Response (200)
+
+```json
+{
+  "status": "success",
+  "data": {
+    "appointment": {},
+    "realtimeStatus": "Completed",
+    "dbStatus": "Upcoming",
+    "appointmentEnd": "2024-03-10T15:00:00.000Z",
+    "currentTime": "2024-03-10T15:30:00.000Z",
+    "hasCompleted": true,
+    "minutesUntilComplete": 0
+  }
+}
+```
+
+### Response Fields
+
+| Field                  | Description                                      |
+| ---------------------- | ------------------------------------------------ |
+| `appointment`          | Complete appointment object.                     |
+| `realtimeStatus`       | Status calculated based on current time.         |
+| `dbStatus`             | Status currently stored in the database.         |
+| `appointmentEnd`       | Calculated appointment end time.                 |
+| `currentTime`          | Current server timestamp.                        |
+| `hasCompleted`         | Indicates whether the appointment has completed. |
+| `minutesUntilComplete` | Minutes remaining until completion.              |
+
+### Error Response (403)
+
+```json
+{
+  "status": "fail",
+  "message": "You do not have permission to view this appointment"
+}
+```
+
+### Error Response (404)
+
+```json
+{
+  "status": "fail",
+  "message": "Appointment not found"
+}
+```
+
+### Example Request
+
+```http
+GET http://localhost:5000/api/appointments/123abc/check-status
+Authorization: Bearer <token>
+```
+
+---
+
+## 3. Bulk Check Appointment Statuses
+
+Checks the real-time status of multiple appointments in a single request.
+
+Useful for dashboards, appointment tables, and list views.
+
+### Endpoint
+
+```http
+POST /api/appointments/check-statuses
+```
+
+### Authentication
+
+Required
+
+### Request Body
+
+```json
+{
+  "appointmentIds": ["id1", "id2", "id3"]
+}
+```
+
+### Success Response (200)
+
+```json
+{
+  "status": "success",
+  "data": {
+    "appointments": [
+      {
+        "id": "id1",
+        "realtimeStatus": "Completed",
+        "dbStatus": "Upcoming",
+        "hasCompleted": true,
+        "appointmentDate": "2024-03-10",
+        "timeSlot": "02:00 PM"
+      },
+      {
+        "id": "id2",
+        "realtimeStatus": "Upcoming",
+        "dbStatus": "Upcoming",
+        "hasCompleted": false,
+        "appointmentDate": "2024-03-12",
+        "timeSlot": "03:00 PM"
+      }
+    ],
+    "summary": {
+      "total": 3,
+      "completed": 2,
+      "upcoming": 1,
+      "cancelled": 0
+    }
+  }
+}
+```
+
+### Response Fields
+
+#### Appointment Object
+
+| Field             | Description                                      |
+| ----------------- | ------------------------------------------------ |
+| `id`              | Appointment ID.                                  |
+| `realtimeStatus`  | Status calculated from current time.             |
+| `dbStatus`        | Status stored in the database.                   |
+| `hasCompleted`    | Indicates whether the appointment has completed. |
+| `appointmentDate` | Appointment date.                                |
+| `timeSlot`        | Scheduled appointment time slot.                 |
+
+#### Summary Object
+
+| Field       | Description                       |
+| ----------- | --------------------------------- |
+| `total`     | Total appointments checked.       |
+| `completed` | Number of completed appointments. |
+| `upcoming`  | Number of upcoming appointments.  |
+| `cancelled` | Number of cancelled appointments. |
+
+### Error Response (400)
+
+```json
+{
+  "status": "fail",
+  "message": "Please provide appointmentIds as an array"
+}
+```
+
+### Example Request
+
+```http
+POST http://localhost:5000/api/appointments/check-statuses
+Authorization: Bearer <token>
+Content-Type: application/json
+```
+
+```json
+{
+  "appointmentIds": ["507f1f77bcf86cd799439011", "507f1f77bcf86cd799439012"]
+}
+```
+
+---
+
+## 4. Get Appointments Grouped by Status
+
+Returns appointments grouped according to their real-time status.
+
+Useful for dashboards displaying Upcoming, Completed, and Cancelled appointments.
+
+### Endpoint
+
+```http
+GET /api/appointments/grouped-by-status
+```
+
+### Authentication
+
+Required
+
+### Query Parameters
+
+None
+
+### Success Response (200)
+
+```json
+{
+  "status": "success",
+  "data": {
+    "upcoming": [],
+    "completed": [],
+    "cancelled": [],
+    "counts": {
+      "upcoming": 3,
+      "completed": 5,
+      "cancelled": 1,
+      "total": 9
+    }
+  }
+}
+```
+
+### Response Fields
+
+#### Appointment Groups
+
+| Field       | Description                     |
+| ----------- | ------------------------------- |
+| `upcoming`  | List of upcoming appointments.  |
+| `completed` | List of completed appointments. |
+| `cancelled` | List of cancelled appointments. |
+
+#### Counts Object
+
+| Field       | Description                   |
+| ----------- | ----------------------------- |
+| `upcoming`  | Total upcoming appointments.  |
+| `completed` | Total completed appointments. |
+| `cancelled` | Total cancelled appointments. |
+| `total`     | Total appointments returned.  |
+
+### Notes
+
+- Administrators receive all appointments.
+- Patients receive only their own appointments.
+- `realtimeStatus` is calculated dynamically using the current server time.
+- `dbStatus` represents the status currently stored in the database.
+- Real-time status may differ from the database status until scheduled updates are executed.
+
+### Example Request
+
+```http
+GET http://localhost:5000/api/appointments/grouped-by-status
+Authorization: Bearer <token>
+```
+
 ## 🧪 Running Tests
 
 The project includes comprehensive unit and integration tests using Jest and Supertest.
