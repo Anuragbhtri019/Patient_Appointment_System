@@ -2,9 +2,6 @@
 
 A full-stack healthcare management application that enables patients to book appointments with doctors, manage their medical schedules, and rate healthcare providers. The system features a robust backend API, an intuitive frontend interface, and real-time appointment management.
 
-frontend : https://patient-appointment-system-7jim7uioz-anuragbhtri019s-projects.vercel.app/search
-backend : https://patient-appointment-system-1.onrender.com/
-
 ## 📋 Table of Contents
 
 - [Project Overview](#project-overview)
@@ -258,7 +255,7 @@ Before starting, ensure you have the following installed:
 ### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/yourusername/patient-appointment-system.git
+git clone https://github.com/Anuragbhtri019/patient-appointment-system.git
 cd patient-appointment-system
 ```
 

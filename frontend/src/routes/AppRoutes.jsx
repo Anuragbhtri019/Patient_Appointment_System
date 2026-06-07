@@ -1,26 +1,27 @@
-import { Routes, Route, Navigate } from 'react-router-dom';
-import ProtectedRoute from './ProtectedRoute';
-import AdminRoute from './AdminRoute';
-import PatientLayout from '../components/layout/PatientLayout';
-import AdminLayout from '../components/layout/AdminLayout';
+import { Routes, Route, Navigate } from "react-router-dom";
+import ProtectedRoute from "./ProtectedRoute";
+import AdminRoute from "./AdminRoute";
+import PatientLayout from "../components/layout/PatientLayout";
+import AdminLayout from "../components/layout/AdminLayout";
 
 // Auth pages
-import LoginPage from '../pages/auth/LoginPage';
-import RegisterPage from '../pages/auth/RegisterPage';
+import LoginPage from "../pages/auth/LoginPage";
+import RegisterPage from "../pages/auth/RegisterPage";
 
 // Patient pages
-import DoctorSearch from '../pages/patient/DoctorSearch';
-import PatientDashboard from '../pages/patient/PatientDashboard';
-import AppointmentHistory from '../pages/patient/AppointmentHistory';
+import DoctorSearch from "../pages/patient/DoctorSearch";
+import PatientDashboard from "../pages/patient/PatientDashboard";
+import AppointmentHistory from "../pages/patient/AppointmentHistory";
+import ProfilePage from "../pages/patient/ProfilePage";
 
 // Admin pages
-import AdminDashboard from '../pages/admin/AdminDashboard';
-import DoctorManagement from '../pages/admin/DoctorManagement';
-import ScheduleManagement from '../pages/admin/ScheduleManagement';
-import AdminAppointments from '../pages/admin/AdminAppointments';
+import AdminDashboard from "../pages/admin/AdminDashboard";
+import DoctorManagement from "../pages/admin/DoctorManagement";
+import ScheduleManagement from "../pages/admin/ScheduleManagement";
+import AdminAppointments from "../pages/admin/AdminAppointments";
 
 // 404 Page
-import NotFoundPage from '../pages/NotFoundPage';
+import NotFoundPage from "../pages/NotFoundPage";
 
 export default function AppRoutes() {
   return (
@@ -56,6 +57,16 @@ export default function AppRoutes() {
           <ProtectedRoute>
             <PatientLayout>
               <AppointmentHistory />
+            </PatientLayout>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProtectedRoute>
+            <PatientLayout>
+              <ProfilePage />
             </PatientLayout>
           </ProtectedRoute>
         }

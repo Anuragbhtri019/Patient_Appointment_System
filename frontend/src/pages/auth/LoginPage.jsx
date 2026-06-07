@@ -28,6 +28,7 @@ export default function LoginPage() {
     if (errors[name]) setErrors((p) => ({ ...p, [name]: "" }));
   };
 
+  // Lines 31-49
   const handleSubmit = async (e) => {
     e.preventDefault();
     setGeneralError("");
@@ -35,11 +36,16 @@ export default function LoginPage() {
 
     const result = await login(formData.email, formData.password);
     if (result.success) {
-      // If there was a redirect origin, go back there; otherwise use role default
-      if (redirectTo) {
-        navigate(redirectTo, { replace: true });
-      } else if (result.user?.role === "admin") {
+      if (result.user?.role === "admin") {
+        // Admin users always go to admin dashboard
         navigate("/admin", { replace: true });
+      } else if (result.user?.role === "patient") {
+        const safePatientPages = ["/search", "/dashboard", "/history"];
+        if (redirectTo && safePatientPages.includes(redirectTo)) {
+          navigate(redirectTo, { replace: true });
+        } else {
+          navigate("/dashboard", { replace: true });
+        }
       } else {
         navigate("/dashboard", { replace: true });
       }

@@ -8,7 +8,7 @@ import {
 } from "../validators/auth.validator.js";
 import * as authController from "../controllers/auth.controller.js";
 import { protect } from "../middleware/auth.middleware.js";
-import { upload } from "../middleware/upload.middleware.js";
+import { uploadProfile } from "../middleware/upload.middleware.js";
 
 const router = express.Router();
 
@@ -25,7 +25,7 @@ router.get("/me", protect, authController.getMe);
 router.patch(
   "/profile",
   protect,
-  upload.single("profileImage"),
+  uploadProfile.single("profileImage"),
   validate(updateProfileRules()),
   authController.updateProfile,
 );

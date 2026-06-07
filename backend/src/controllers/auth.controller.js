@@ -151,20 +151,33 @@ export const getMe = catchAsync(async (req, res) => {
   res.status(200).json({ status: "success", data: { user } });
 });
 
-// ── profile management───────────
+//  profile management
 
 export const updateProfile = catchAsync(async (req, res) => {
   const { name, email } = req.body;
   const userId = req.user._id;
 
-  // Check email uniqueness if user is changing it
+  //  Check email uniqueness with better validation
   if (email && email !== req.user.email) {
-    const taken = await User.findOne({ email, _id: { $ne: userId } });
-    if (taken)
-      throw new AppError(
-        "This email is already in use by another account",
-        409,
-      );
+    // Normalize email for comparison
+    const emailLower = email.toLowerCase().trim();
+    const currentEmailLower = req.user.email.toLowerCase().trim();
+
+    // Check if user is actually changing email
+    if (emailLower !== currentEmailLower) {
+      // Check if email already exists
+      const taken = await User.findOne({
+        email: emailLower,
+        _id: { $ne: userId },
+      });
+
+      if (taken) {
+        throw new AppError(
+          "This email is already in use by another account. Please choose a different email.",
+          409,
+        );
+      }
+    }
   }
 
   const current = await User.findById(userId);
@@ -178,15 +191,33 @@ export const updateProfile = catchAsync(async (req, res) => {
     profileImage = req.file.path;
   }
 
+  //  Normalize and validate all inputs
   const updatedUser = await User.findByIdAndUpdate(
     userId,
     {
-      ...(name && { name }),
-      ...(email && { email }),
+      ...(name && { name: name.trim() }),
+      ...(email && { email: email.toLowerCase().trim() }),
       profileImage,
     },
     { new: true, runValidators: true },
   );
+
+  //  Log email changes for audit trail
+  if (email && email.toLowerCase() !== req.user.email.toLowerCase()) {
+    console.log(
+      `[SECURITY AUDIT] User ${userId} changed email from ${req.user.email} to ${email.toLowerCase()}`,
+    );
+
+    //For audit log to be used during the production
+
+    // await AuditLog.create({
+    //    userId,
+    //  action: "EMAIL_CHANGE",
+    //   oldValue: req.user.email,
+    //    newValue: email.toLowerCase(),
+    //   timestamp: new Date(),
+    // });
+  }
 
   res.status(200).json({
     status: "success",
@@ -207,6 +238,9 @@ export const changePassword = catchAsync(async (req, res) => {
 
   user.password = newPassword;
   await user.save(); // triggers the bcrypt pre-save hook
+
+  //  Log password changes
+  console.log(`[SECURITY AUDIT] User ${req.user._id} changed their password`);
 
   res.status(200).json({
     status: "success",
@@ -235,3 +269,149 @@ export const deleteProfileImage = catchAsync(async (req, res) => {
     data: { user },
   });
 });
+
+export const checkEmailAvailability = catchAsync(async (req, res) => {
+  const { email } = req.body;
+
+  // Validate email format
+  if (!email) {
+    throw new AppError("Please provide an email address", 400);
+  }
+
+  // Simple email format validation
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  if (!emailRegex.test(email)) {
+    throw new AppError("Please provide a valid email format", 400);
+  }
+
+  // Normalize email for checking
+  const emailLower = email.toLowerCase().trim();
+
+  // Check if current user (if authenticated) already has this email
+  if (req.user && emailLower === req.user.email.toLowerCase()) {
+    // Email is same as current user's email - it's "available" (no change)
+    return res.status(200).json({
+      status: "success",
+      data: {
+        available: true,
+        email: emailLower,
+        message: "This is your current email address",
+      },
+    });
+  }
+
+  // Check if email exists for another user
+  const existingUser = await User.findOne({
+    email: emailLower,
+    ...(req.user && { _id: { $ne: req.user._id } }), // Exclude current user if authenticated
+  });
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      available: !existingUser,
+      email: emailLower,
+      ...(existingUser && {
+        message: "This email is already in use by another account",
+      }),
+    },
+  });
+});
+
+/*
+Request email change with verification
+ * 
+ * For production systems, consider requiring email verification:
+ * 1. User requests email change
+ * 2. Verification email sent to NEW email address
+ * 3. User clicks verification link
+ * 4. Email is updated only after verification
+ * 
+/*
+export const requestEmailChange = catchAsync(async (req, res) => {
+  const { newEmail } = req.body;
+  const userId = req.user._id;
+ 
+  // Validate new email format
+  if (!newEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newEmail)) {
+    throw new AppError("Please provide a valid email", 400);
+  }
+ 
+  // Check if email already exists
+  const taken = await User.findOne({
+    email: newEmail.toLowerCase(),
+    _id: { $ne: userId }
+  });
+ 
+  if (taken) {
+    throw new AppError(
+      "This email is already in use by another account",
+      409,
+    );
+  }
+ 
+  // Generate verification token
+  const verificationToken = crypto.randomBytes(32).toString('hex');
+  const verificationTokenHash = crypto
+    .createHash('sha256')
+    .update(verificationToken)
+    .digest('hex');
+ 
+  const verificationExpires = Date.now() + 30 * 60 * 1000; // 30 minutes
+ 
+  // Save pending email change
+  await User.findByIdAndUpdate(userId, {
+    pendingEmail: newEmail.toLowerCase(),
+    emailVerificationToken: verificationTokenHash,
+    emailVerificationExpires: verificationExpires,
+  });
+ 
+  //  Send verification email to new address
+  // const verificationUrl = `${process.env.FRONTEND_URL}/verify-email/${verificationToken}`;
+  // await sendEmail({...});
+ 
+  res.status(200).json({
+    status: "success",
+    message: "Verification email sent to your new email address. Please verify within 30 minutes.",
+  });
+});
+ 
+export const verifyEmailChange = catchAsync(async (req, res) => {
+  const { token } = req.params;
+  const userId = req.user._id;
+ 
+  // Hash token
+  const verificationTokenHash = crypto
+    .createHash('sha256')
+    .update(token)
+    .digest('hex');
+ 
+  // Find user with valid token
+  const user = await User.findOne({
+    _id: userId,
+    emailVerificationToken: verificationTokenHash,
+    emailVerificationExpires: { $gt: Date.now() },
+  });
+ 
+  if (!user) {
+    throw new AppError(
+      "Email verification token is invalid or has expired",
+      400,
+    );
+  }
+ 
+  // Update email and clear verification fields
+  user.email = user.pendingEmail;
+  user.pendingEmail = null;
+  user.emailVerificationToken = null;
+  user.emailVerificationExpires = null;
+ 
+  await user.save();
+ 
+  res.status(200).json({
+    status: "success",
+    message: "Email successfully verified and updated",
+    data: { user },
+  });
+});
+*/

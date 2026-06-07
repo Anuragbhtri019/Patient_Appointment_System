@@ -15,4 +15,9 @@ export const authApi = {
     }),
   changePassword: (data) => axiosInstance.patch("/auth/change-password", data),
   deleteProfileImage: () => axiosInstance.delete("/auth/profile-image"),
+
+  // Email availability check
+  // Real-time validation to prevent users from entering taken emails
+  checkEmailAvailability: (data) =>
+    axiosInstance.post("/auth/check-email", data),
 };
