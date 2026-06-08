@@ -36,10 +36,7 @@ function normalizeSchedulesResponse(payload) {
 export default function DoctorSearch() {
   const navigate = useNavigate();
 
-  const { user, isAuthenticated } = useAuth();
-
-  const isPatient = user?.role === "patient";
-  const isAdmin = user?.role === "admin";
+  const { user, isAuthenticated, isAdmin, isPatient } = useAuth();
 
   const { showSuccess, showError } = useToast();
   const { bookAppointment, isLoading: isBooking } = useAppointments();
@@ -57,9 +54,8 @@ export default function DoctorSearch() {
   const [bookingModalOpen, setBookingModalOpen] = useState(false);
   const [schedules, setSchedules] = useState([]);
 
-  // -----------------------------
   // Fetch Doctors
-  // -----------------------------
+
   const fetchDoctors = useCallback(
     async (page = 1) => {
       try {
@@ -76,7 +72,7 @@ export default function DoctorSearch() {
         setTotalPages(
           response.data?.pagination?.pages ||
             response.data?.data?.pagination?.pages ||
-            1
+            1,
         );
 
         setCurrentPage(page);
@@ -87,27 +83,23 @@ export default function DoctorSearch() {
         setIsLoading(false);
       }
     },
-    [filters, showError]
+    [filters, showError],
   );
 
   useEffect(() => {
     fetchDoctors(1);
   }, [fetchDoctors]);
 
-  // -----------------------------
   // Fetch Doctor Schedules
-  // -----------------------------
+
   const fetchSchedulesByDoctor = useCallback(
     async (doctorId) => {
       try {
         setSlotsLoading(true);
 
-        const response =
-          await scheduleApi.getSchedulesByDoctor(doctorId);
+        const response = await scheduleApi.getSchedulesByDoctor(doctorId);
 
-        const scheduleData = normalizeSchedulesResponse(
-          response.data
-        );
+        const scheduleData = normalizeSchedulesResponse(response.data);
 
         setSchedules(scheduleData);
 
@@ -124,41 +116,41 @@ export default function DoctorSearch() {
         setSlotsLoading(false);
       }
     },
-    [showError]
+    [showError],
   );
 
-  // -----------------------------
   // Book Button Click
-  // -----------------------------
+
   const handleBookClick = async (doctor) => {
     if (!isAuthenticated) {
       navigate("/login", {
         state: {
           from: "/search",
-          message:
-            "Please login to book an appointment.",
+          message: "Please login to book an appointment.",
         },
       });
 
       return;
     }
+    if (isAdmin) {
+      showError(
+        "Admin accounts cannot book appointments.Please use a patient account.",
+      );
+      return;
+    }
 
     if (!isPatient) {
       showError(
-        "Only patient accounts can book appointments."
+        "Only patient accounts can book appointments.Your account role is not recognized.",
       );
 
       return;
     }
 
-    const scheduleData = await fetchSchedulesByDoctor(
-      doctor._id
-    );
+    const scheduleData = await fetchSchedulesByDoctor(doctor._id);
 
     if (!scheduleData.length) {
-      showError(
-        "No available schedules for this doctor."
-      );
+      showError("No available schedules for this doctor.");
 
       return;
     }
@@ -167,27 +159,43 @@ export default function DoctorSearch() {
     setBookingModalOpen(true);
   };
 
-  // -----------------------------
+  if (isAdmin) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+          <h2 className="text-2xl font-bold text-blue-900 mb-2">
+            Admin Dashboard Access
+          </h2>
+          <p className="text-blue-700 mb-4">
+            As an admin, you cannot book appointments. Please visit the{" "}
+            <button
+              onClick={() => navigate("/admin")}
+              className="underline font-semibold hover:text-blue-600"
+            >
+              Admin Dashboard
+            </button>{" "}
+            to manage appointments instead.
+          </p>
+        </div>
+      </div>
+    );
+  }
+
   // Confirm Booking
-  // -----------------------------
+
   const handleConfirmBooking = async (bookingData) => {
     try {
       const result = await bookAppointment(bookingData);
 
       if (!result.success) {
-        throw new Error(
-          result.message || "Booking failed"
-        );
+        throw new Error(result.message || "Booking failed");
       }
 
-      showSuccess(
-        "Appointment booked successfully!"
-      );
+      showSuccess("Appointment booked successfully!");
 
       return { success: true };
     } catch (error) {
-      const message =
-        error.message || "Failed to book appointment";
+      const message = error.message || "Failed to book appointment";
 
       showError(message);
 
@@ -206,9 +214,7 @@ export default function DoctorSearch() {
   return (
     <div>
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">
-          Find a Doctor
-        </h1>
+        <h1 className="text-3xl font-bold text-gray-900 mb-2">Find a Doctor</h1>
 
         <p className="text-gray-600">
           Browse our network of experienced doctors
@@ -218,23 +224,18 @@ export default function DoctorSearch() {
       {isAdmin && (
         <div className="mb-6 rounded-lg border border-yellow-200 bg-yellow-50 p-4">
           <p className="text-yellow-800 text-sm">
-            You are logged in as an admin.
-            Admin accounts cannot book appointments.
+            You are logged in as an admin. Admin accounts cannot book
+            appointments.
           </p>
         </div>
       )}
 
-      <SearchFilterBar
-        onFilterChange={handleFilterChange}
-      />
+      <SearchFilterBar onFilterChange={handleFilterChange} />
 
       {isLoading ? (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {Array.from({ length: 6 }).map((_, i) => (
-            <Skeleton
-              key={i}
-              variant="card"
-            />
+            <Skeleton key={i} variant="card" />
           ))}
         </div>
       ) : doctors.length === 0 ? (
@@ -257,25 +258,18 @@ export default function DoctorSearch() {
 
           {totalPages > 1 && (
             <div className="flex justify-center gap-2 mt-8">
-              {Array.from(
-                { length: totalPages },
-                (_, i) => i + 1
-              ).map((page) => (
-                <Button
-                  key={page}
-                  size="sm"
-                  variant={
-                    currentPage === page
-                      ? "primary"
-                      : "secondary"
-                  }
-                  onClick={() =>
-                    fetchDoctors(page)
-                  }
-                >
-                  {page}
-                </Button>
-              ))}
+              {Array.from({ length: totalPages }, (_, i) => i + 1).map(
+                (page) => (
+                  <Button
+                    key={page}
+                    size="sm"
+                    variant={currentPage === page ? "primary" : "secondary"}
+                    onClick={() => fetchDoctors(page)}
+                  >
+                    {page}
+                  </Button>
+                ),
+              )}
             </div>
           )}
         </>

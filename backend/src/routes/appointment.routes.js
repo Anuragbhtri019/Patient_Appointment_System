@@ -8,20 +8,15 @@ import {
 import { protect, restrictTo } from "../middleware/auth.middleware.js";
 import { checkAppointmentLimit } from "../middleware/appointmentLimit.middleware.js";
 
-import {
-  updateAppointmentStatuses,
-  checkAppointmentStatus,
-  checkMultipleAppointmentStatuses,
-  getAppointmentsGroupedByStatus,
-} from "../controllers/appointment.controller.js";
-
 const router = express.Router();
 
-router.get(
+router.post(
   "/",
   protect,
-  restrictTo("admin"),
-  appointmentController.getAllAppointments,
+  restrictTo("patient"), // ← ADDED: Only patients can book
+  checkAppointmentLimit,
+  validate(bookAppointmentRules()),
+  appointmentController.bookAppointment,
 );
 
 router.get(
@@ -30,12 +25,10 @@ router.get(
   appointmentController.getMyAppointments,
 );
 
-router.post(
-  "/",
+router.get(
+  "/grouped-by-status",
   protect,
-  checkAppointmentLimit,
-  validate(bookAppointmentRules()),
-  appointmentController.bookAppointment,
+  appointmentController.getAppointmentsGroupedByStatus,
 );
 
 router.patch(
@@ -45,15 +38,32 @@ router.patch(
   appointmentController.cancelAppointment,
 );
 
-router.post("/", protect, appointmentController.bookAppointment);
-router.get("/", protect, appointmentController.getMyAppointments);
-router.get("/all", protect, appointmentController.getAllAppointments);
-router.get("/:id", protect, appointmentController.getAppointmentById);
-router.patch("/:id/cancel", protect, appointmentController.cancelAppointment);
-router.get("/:id", protect, appointmentController.getAppointmentById);
-router.post("/update-statuses", protect, updateAppointmentStatuses);
-router.get("/:id/check-status", protect, checkAppointmentStatus);
-router.post("/check-statuses", protect, checkMultipleAppointmentStatuses);
-router.get("/grouped-by-status", protect, getAppointmentsGroupedByStatus);
+router.get(
+  "/:id/check-status",
+  protect,
+  appointmentController.checkAppointmentStatus,
+);
 
+router.get("/:id", protect, appointmentController.getAppointmentById);
+
+router.get(
+  "/",
+  protect,
+  restrictTo("admin"), // Only admins can see all appointments
+  appointmentController.getAllAppointments,
+);
+
+router.post(
+  "/update-statuses",
+  protect,
+  restrictTo("admin"), // Only admins can trigger manual updates
+  appointmentController.updateAppointmentStatuses,
+);
+
+router.post(
+  "/check-statuses",
+  protect,
+  restrictTo("admin"), // Only admins can do bulk checks
+  appointmentController.checkMultipleAppointmentStatuses,
+);
 export default router;

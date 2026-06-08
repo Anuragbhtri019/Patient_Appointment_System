@@ -8,23 +8,44 @@ import {
   getRealtimeAppointmentStatus,
 } from "../service/appointmentService.js";
 
+// PATIENT FUNCTIONS
+/**
+ * Book an appointment
+ * POST /api/appointments
+ * Access: Patient only
+ *
+ * FIXED: Added role check to prevent admins from booking
+ */
 export const bookAppointment = catchAsync(async (req, res) => {
   const { doctorId, scheduleId, slotId, consultationType } = req.body;
   const patientId = req.user._id;
 
+  // ✓ FIX #1: Check that user is actually a patient
+  if (req.user.role !== "patient") {
+    throw new AppError(
+      "Only patients can book appointments. Your account appears to be an admin account.",
+      403,
+    );
+  }
+
+  // Get the schedule
   const schedule = await Schedule.findById(scheduleId);
   if (!schedule) {
     throw new AppError("Schedule not found", 404);
   }
 
+  // Find the specific time slot
   const slot = schedule.timeSlots.id(slotId);
   if (!slot) {
     throw new AppError("Slot not found", 404);
   }
 
+  // Check if slot is already booked
   if (slot.status === "Booked") {
     throw new AppError("This slot is already booked", 400);
   }
+
+  // Check if consultation type matches
   if (slot.consultationType !== consultationType) {
     throw new AppError(
       `This slot is only available for ${slot.consultationType} consultations`,
@@ -32,9 +53,11 @@ export const bookAppointment = catchAsync(async (req, res) => {
     );
   }
 
+  // Mark slot as booked
   slot.status = "Booked";
   await schedule.save();
 
+  // Create appointment
   const appointment = await Appointment.create({
     patient: patientId,
     doctor: doctorId,
@@ -46,6 +69,7 @@ export const bookAppointment = catchAsync(async (req, res) => {
     status: "Upcoming",
   });
 
+  // Return populated appointment
   const populatedAppointment = await Appointment.findById(appointment._id)
     .populate("patient", "name email")
     .populate("doctor")
@@ -57,12 +81,18 @@ export const bookAppointment = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * Get user's own appointments
+ * GET /api/appointments/my-appointments
+ * Access: Authenticated users (gets their own appointments)
+ */
 export const getMyAppointments = catchAsync(async (req, res) => {
   const appointments = await Appointment.find({ patient: req.user._id })
     .populate("doctor")
     .populate("schedule")
     .sort("-appointmentDate");
 
+  // Separate into upcoming and past
   const upcoming = appointments.filter((a) => a.status === "Upcoming");
   const past = appointments.filter((a) => a.status !== "Upcoming");
 
@@ -72,20 +102,11 @@ export const getMyAppointments = catchAsync(async (req, res) => {
   });
 });
 
-export const getAllAppointments = catchAsync(async (req, res) => {
-  const appointments = await Appointment.find()
-    .populate("patient", "name email")
-    .populate("doctor")
-    .populate("schedule")
-    .sort("-createdAt");
-
-  res.status(200).json({
-    status: "success",
-    results: appointments.length,
-    data: { appointments },
-  });
-});
-
+/**
+ * Cancel an appointment
+ * PATCH /api/appointments/:id/cancel
+ * Access: Patient (owner of appointment)
+ */
 export const cancelAppointment = catchAsync(async (req, res) => {
   const appointment = await Appointment.findById(req.params.id);
 
@@ -93,18 +114,22 @@ export const cancelAppointment = catchAsync(async (req, res) => {
     throw new AppError("Appointment not found", 404);
   }
 
+  // Check ownership - patient can only cancel their own appointments
   if (appointment.patient.toString() !== req.user._id.toString()) {
     throw new AppError("You can only cancel your own appointments", 403);
   }
 
+  // Can only cancel upcoming appointments
   if (appointment.status !== "Upcoming") {
     throw new AppError("You can only cancel upcoming appointments", 400);
   }
 
+  // Cannot cancel past appointments
   if (appointment.appointmentDate < new Date()) {
     throw new AppError("Cannot cancel past appointments", 400);
   }
 
+  // Free up the schedule slot
   const schedule = await Schedule.findById(appointment.schedule);
   if (schedule) {
     const slot = schedule.timeSlots.id(appointment.slotId);
@@ -114,6 +139,7 @@ export const cancelAppointment = catchAsync(async (req, res) => {
     }
   }
 
+  // Update appointment status
   appointment.status = "Cancelled";
   if (req.body.reason) {
     appointment.cancellationReason = req.body.reason;
@@ -126,6 +152,11 @@ export const cancelAppointment = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * Get a specific appointment
+ * GET /api/appointments/:id
+ * Access: Patient (owner) or Admin
+ */
 export const getAppointmentById = catchAsync(async (req, res) => {
   const appointment = await Appointment.findById(req.params.id)
     .populate("patient", "name email")
@@ -136,6 +167,7 @@ export const getAppointmentById = catchAsync(async (req, res) => {
     throw new AppError("Appointment not found", 404);
   }
 
+  // Check permission
   if (
     appointment.patient._id.toString() !== req.user._id.toString() &&
     req.user.role !== "admin"
@@ -152,12 +184,34 @@ export const getAppointmentById = catchAsync(async (req, res) => {
   });
 });
 
-export const updateAppointmentStatuses = catchAsync(async (req, res) => {
-  // Optional: Add admin check if you want this restricted
-  // if (req.user.role !== "admin") {
-  //   throw new AppError("Only admins can manually update appointment statuses", 403);
-  // }
+// ADMIN FUNCTIONS
+/**
+ * Get all appointments (admin dashboard)
+ * GET /api/appointments
+ * Access: Admin only
+ */
+export const getAllAppointments = catchAsync(async (req, res) => {
+  const appointments = await Appointment.find()
+    .populate("patient", "name email")
+    .populate("doctor")
+    .populate("schedule")
+    .sort("-createdAt");
 
+  res.status(200).json({
+    status: "success",
+    results: appointments.length,
+    data: { appointments },
+  });
+});
+
+/**
+ * Manually update appointment statuses
+ * POST /api/appointments/update-statuses
+ * Access: Admin only
+ *
+ * Triggers the appointment status update logic that normally runs on schedule
+ */
+export const updateAppointmentStatuses = catchAsync(async (req, res) => {
   const { option } = req.body;
 
   if (!option) {
@@ -174,7 +228,6 @@ export const updateAppointmentStatuses = catchAsync(async (req, res) => {
     );
   }
 
-  // Call the service function to update statuses
   const result = await manualUpdateAppointments(option);
 
   res.status(200).json({
@@ -188,11 +241,18 @@ export const updateAppointmentStatuses = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * Check real-time status of a single appointment
+ * GET /api/appointments/:id/check-status
+ * Access: Patient (owner) or Admin
+ *
+ * Returns real-time status based on current time without updating DB
+ */
 export const checkAppointmentStatus = catchAsync(async (req, res) => {
   try {
     const result = await getRealtimeAppointmentStatus(req.params.id);
 
-    // Permission check - user can only check their own appointments, or admin can check any
+    // Check permission
     if (
       result.appointment.patient._id.toString() !== req.user._id.toString() &&
       req.user.role !== "admin"
@@ -215,6 +275,13 @@ export const checkAppointmentStatus = catchAsync(async (req, res) => {
   }
 });
 
+/**
+ * Check real-time status of multiple appointments
+ * POST /api/appointments/check-statuses
+ * Access: Admin only
+ *
+ * Bulk check real-time status without updating DB
+ */
 export const checkMultipleAppointmentStatuses = catchAsync(async (req, res) => {
   const { appointmentIds } = req.body;
 
@@ -235,24 +302,9 @@ export const checkMultipleAppointmentStatuses = catchAsync(async (req, res) => {
     _id: { $in: appointmentIds },
   });
 
-  // Permission check - filter out appointments user can't see
-  const authorizedAppointments = appointments.filter((apt) => {
-    return (
-      apt.patient._id.toString() === req.user._id.toString() ||
-      req.user.role === "admin"
-    );
-  });
-
-  if (authorizedAppointments.length === 0) {
-    throw new AppError(
-      "You don't have permission to view any of these appointments",
-      403,
-    );
-  }
-
   // Calculate real-time statuses
   const now = new Date();
-  const results = authorizedAppointments.map((apt) => {
+  const results = appointments.map((apt) => {
     const timeParts = apt.timeSlot.match(/(\d+):(\d+)/);
     let realtimeStatus = apt.status;
     let hasCompleted = false;
@@ -305,8 +357,16 @@ export const checkMultipleAppointmentStatuses = catchAsync(async (req, res) => {
   });
 });
 
+/**
+ * Get appointments grouped by real-time status
+ * GET /api/appointments/grouped-by-status
+ * Access: Authenticated users
+ *
+ * Returns appointments grouped by their real-time status
+ * Patients see only their own, admins see all
+ */
 export const getAppointmentsGroupedByStatus = catchAsync(async (req, res) => {
-  // Get all appointments for the user or all if admin
+  // Build query based on role
   const query = req.user.role === "admin" ? {} : { patient: req.user._id };
 
   const appointments = await Appointment.find(query)
