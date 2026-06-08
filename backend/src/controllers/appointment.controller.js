@@ -212,8 +212,6 @@ export const getAllAppointments = catchAsync(async (req, res) => {
  * Triggers the appointment status update logic that normally runs on schedule
  */
 export const updateAppointmentStatuses = catchAsync(async (req, res) => {
-  const { option } = req.body;
-
   if (!option) {
     throw new AppError(
       'Please provide an option: "complete-1h" or "complete-now"',
@@ -228,7 +226,7 @@ export const updateAppointmentStatuses = catchAsync(async (req, res) => {
     );
   }
 
-  const result = await manualUpdateAppointments(option);
+  const result = await manualUpdateAppointments();
 
   res.status(200).json({
     status: "success",

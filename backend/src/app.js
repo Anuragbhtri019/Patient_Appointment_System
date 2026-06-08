@@ -12,14 +12,11 @@ import scheduleRoutes from "./routes/schedule.routes.js";
 import appointmentRoutes from "./routes/appointment.routes.js";
 import ratingRoutes from "./routes/rating.routes.js";
 import { errorHandler } from "./middleware/error.middleware.js";
-import { initializeAppointmentScheduler } from "./service/appointmentService.js";
 
 const app = express();
 
 app.use(helmet());
 app.use(morgan("dev"));
-
-initializeAppointmentScheduler();
 
 app.use(
   cors({

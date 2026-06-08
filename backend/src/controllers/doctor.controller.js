@@ -103,46 +103,72 @@ export const createDoctor = catchAsync(async (req, res) => {
 });
 
 export const updateDoctor = catchAsync(async (req, res) => {
-  const { name, specialization, email, hospitalBranch } = req.body;
-
   const doctor = await Doctor.findById(req.params.id);
+
   if (!doctor) {
     throw new AppError("Doctor not found", 404);
   }
 
-  let imageUrl = doctor.imageUrl;
+  const updateData = {};
+
+  if (req.body.name !== undefined) {
+    updateData.name = req.body.name.trim();
+  }
+
+  if (req.body.specialization !== undefined) {
+    updateData.specialization = req.body.specialization;
+  }
+
+  if (req.body.email !== undefined) {
+    const existingDoctor = await Doctor.findOne({
+      email: req.body.email.toLowerCase(),
+      _id: { $ne: doctor._id },
+    });
+
+    if (existingDoctor) {
+      throw new AppError("Another doctor already uses this email", 400);
+    }
+
+    updateData.email = req.body.email.toLowerCase().trim();
+  }
+
+  if (req.body.hospitalBranch !== undefined) {
+    updateData.hospitalBranch = req.body.hospitalBranch.trim();
+  }
 
   if (req.file) {
-    // Delete old image from Cloudinary before replacing it
-    if (imageUrl) {
+    if (doctor.imageUrl && doctor.imageUrl.includes("cloudinary")) {
       try {
-        const afterUpload = imageUrl.split("/upload/")[1];
-        if (afterUpload) {
-          const publicId = afterUpload
-            .replace(/^v\d+\//, "")
-            .replace(/\.[^/.]+$/, "");
-          await cloudinary.uploader.destroy(publicId);
+        const matches = doctor.imageUrl.match(
+          /\/upload\/(?:v\d+\/)?(.+)\.[a-zA-Z]+$/,
+        );
+
+        if (matches?.[1]) {
+          await cloudinary.uploader.destroy(matches[1]);
         }
-      } catch (err) {
-        console.error("Failed to delete old Cloudinary image:", err.message);
+      } catch (error) {
+        console.error("Cloudinary delete failed:", error.message);
       }
     }
-    imageUrl = req.file.path;
+
+    updateData.imageUrl = req.file.path;
   }
 
   const updatedDoctor = await Doctor.findByIdAndUpdate(
     req.params.id,
+    updateData,
     {
-      name: name || doctor.name,
-      specialization: specialization || doctor.specialization,
-      email: email || doctor.email,
-      hospitalBranch: hospitalBranch || doctor.hospitalBranch,
-      imageUrl,
+      new: true,
+      runValidators: true,
     },
-    { new: true, runValidators: true },
   );
 
-  res.status(200).json({ status: "success", data: { doctor: updatedDoctor } });
+  res.status(200).json({
+    status: "success",
+    data: {
+      doctor: updatedDoctor,
+    },
+  });
 });
 
 export const deleteDoctor = catchAsync(async (req, res) => {

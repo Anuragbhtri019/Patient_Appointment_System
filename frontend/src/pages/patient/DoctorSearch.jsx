@@ -159,30 +159,7 @@ export default function DoctorSearch() {
     setBookingModalOpen(true);
   };
 
-  if (isAdmin) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 py-8">
-        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
-          <h2 className="text-2xl font-bold text-blue-900 mb-2">
-            Admin Dashboard Access
-          </h2>
-          <p className="text-blue-700 mb-4">
-            As an admin, you cannot book appointments. Please visit the{" "}
-            <button
-              onClick={() => navigate("/admin")}
-              className="underline font-semibold hover:text-blue-600"
-            >
-              Admin Dashboard
-            </button>{" "}
-            to manage appointments instead.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
-  // Confirm Booking
-
+  // Booking Confirmation
   const handleConfirmBooking = async (bookingData) => {
     try {
       const result = await bookAppointment(bookingData);
@@ -210,6 +187,31 @@ export default function DoctorSearch() {
     setFilters(newFilters);
     setCurrentPage(1);
   }, []);
+
+  // AFTER ALL HOOKS AND CALLBACKS
+
+  if (isAdmin) {
+    return (
+      <div className="max-w-7xl mx-auto px-4 py-8">
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
+          <h2 className="text-2xl font-bold text-blue-900 mb-2">
+            Admin Dashboard Access
+          </h2>
+
+          <p className="text-blue-700 mb-4">
+            As an admin, you cannot book appointments. Please visit the{" "}
+            <button
+              onClick={() => navigate("/admin")}
+              className="underline font-semibold hover:text-blue-600"
+            >
+              Admin Dashboard
+            </button>{" "}
+            to manage appointments instead.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div>

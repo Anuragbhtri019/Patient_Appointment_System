@@ -1,16 +1,17 @@
 import dotenv from "dotenv";
-import app from "./app.js";
-import { connectDB } from "./config/db.js";
-import { startCronJobs } from "./utils/cronJobs.js";
 
 dotenv.config();
 
-const PORT =
-  process.env.PORT || "https://patient-appointment-system-1.onrender.com/";
+const PORT = process.env.PORT || 5000;
 
 const startServer = async () => {
   try {
+    const { default: app } = await import("./app.js");
+    const { connectDB } = await import("./config/db.js");
+    const { startCronJobs } = await import("./utils/cronJobs.js");
+
     await connectDB();
+
     startCronJobs();
 
     app.listen(PORT, () => {

@@ -370,7 +370,7 @@ Email: admin@example.com
 Password: Admin@12345
 
 Patient Users:
-Email: patient1@example.com - patient3@example.com
+Email: patient1@example.com - patient4@example.com
 Password: Patient@12345 (same for all)
 ```
 

@@ -21,38 +21,54 @@ const processQueue = (error, token = null) => {
     }
   });
 
-  isRefreshing = false;
   failedQueue = [];
+  isRefreshing = false;
 };
 
+// REQUEST INTERCEPTOR
 axiosInstance.interceptors.request.use(
   (config) => {
     const token = localStorage.getItem("accessToken");
+
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+
     return config;
   },
   (error) => Promise.reject(error),
 );
 
+// RESPONSE INTERCEPTOR
 axiosInstance.interceptors.response.use(
   (response) => response,
   async (error) => {
     const originalRequest = error.config;
 
-    if (originalRequest?.skipAuthRefresh) {
+    if (!originalRequest) {
       return Promise.reject(error);
     }
 
-    if (error.response?.status === 401 && !originalRequest._retry) {
+    // Prevent infinite retry loops
+    if (originalRequest._retry) {
+      return Promise.reject(error);
+    }
+
+    // Skip refresh for refresh endpoint itself
+    if (originalRequest.url?.includes("/auth/refresh")) {
+      return Promise.reject(error);
+    }
+
+    if (error.response?.status === 401) {
       if (isRefreshing) {
-        // Queue requests if already refreshing
         return new Promise((resolve, reject) => {
-          failedQueue.push({ resolve, reject });
-        }).then((token) => {
-          originalRequest.headers.Authorization = `Bearer ${token}`;
-          return axiosInstance(originalRequest);
+          failedQueue.push({
+            resolve: (token) => {
+              originalRequest.headers.Authorization = `Bearer ${token}`;
+              resolve(axiosInstance(originalRequest));
+            },
+            reject,
+          });
         });
       }
 
@@ -60,28 +76,34 @@ axiosInstance.interceptors.response.use(
       isRefreshing = true;
 
       try {
-        if (originalRequest.url?.includes("/auth/refresh")) {
-          return Promise.reject(error);
+        const response = await axiosInstance.post(
+          "/auth/refresh",
+          {},
+          { skipAuthRefresh: true },
+        );
+
+        const accessToken = response.data?.data?.accessToken;
+
+        if (!accessToken) {
+          throw new Error("No access token returned from refresh");
         }
-        const response = await axiosInstance.post("/auth/refresh", null, {
-          skipAuthRefresh: true,
-        });
-        const { accessToken } = response.data.data;
 
         localStorage.setItem("accessToken", accessToken);
+
+        // update header for retry
         originalRequest.headers.Authorization = `Bearer ${accessToken}`;
 
-        // Process queued requests with the new token
         processQueue(null, accessToken);
 
         return axiosInstance(originalRequest);
       } catch (refreshError) {
+        processQueue(refreshError, null);
+
         localStorage.removeItem("accessToken");
         localStorage.removeItem("user");
 
-        processQueue(refreshError, null);
-
         window.location.href = "/login";
+
         return Promise.reject(refreshError);
       }
     }
