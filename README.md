@@ -848,6 +848,7 @@ Tests cover:
    JWT_SECRET=<strong_random_string_32+_chars>
    JWT_EXPIRE=15m
    JWT_REFRESH_EXPIRE=7d
+   JWT_REFRESH_SECRET=<strong_random_string_32+_chars>
    CLOUDINARY_NAME=<your_cloudinary_name>
    CLOUDINARY_API_KEY=<your_api_key>
    CLOUDINARY_API_SECRET=<your_api_secret>
