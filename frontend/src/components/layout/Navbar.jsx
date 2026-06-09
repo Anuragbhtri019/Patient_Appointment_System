@@ -54,7 +54,7 @@ export default function Navbar() {
         ...baseLinks,
         { path: "/dashboard", label: "My Appointments", icon: null },
         { path: "/history", label: "History", icon: null },
-        { path: "/profile", label: "Find Doctors", icon: null },
+        { path: "/profile", label: "Profile", icon: null },
       ];
     } else if (isAuthenticated) {
       // Fallback for other authenticated users
